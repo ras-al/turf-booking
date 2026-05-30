@@ -15,6 +15,7 @@ import {
   Zap,
   Clock,
   Shield,
+  User,
 } from 'lucide-react';
 
 /* ─── Constants ─── */
@@ -155,11 +156,138 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* ═══════════════════════════════════════
-          HERO SECTION
+          MOBILE APP VIEW (Wireframe Match)
           ═══════════════════════════════════════ */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-        {/* Animated gradient background */}
-        <div className="absolute inset-0 hero-gradient" />
+      <div className="md:hidden">
+        {/* Header Background & App Bar */}
+        <div className="relative pt-20 pb-28 px-4 rounded-b-[40px] overflow-hidden">
+          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/background.jpg')" }}>
+            <div className="absolute inset-0 bg-pitch-950/70 backdrop-blur-[2px]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-pitch-900/50 to-pitch-900" />
+          </div>
+          
+          <div className="relative z-10 mt-6">
+            <h1 className="text-5xl font-display tracking-wider text-chalk leading-none mb-1">
+              Book <span className="text-turf">Turfs</span>
+            </h1>
+
+            {/* Tabs */}
+            <div className="flex gap-5 mt-6 border-b border-pitch-600/50 pb-4 overflow-x-auto scrollbar-hide">
+              <button className="text-chalk font-semibold text-sm whitespace-nowrap bg-pitch-800/80 px-4 py-1.5 rounded-full border border-pitch-600">All Sports</button>
+              <button className="text-chalk-muted font-medium text-sm whitespace-nowrap hover:text-chalk px-4 py-1.5">Football</button>
+              <button className="text-chalk-muted font-medium text-sm whitespace-nowrap hover:text-chalk px-4 py-1.5">Cricket</button>
+              <button className="text-chalk-muted font-medium text-sm whitespace-nowrap hover:text-chalk px-4 py-1.5">Badminton</button>
+            </div>
+          </div>
+        </div>
+
+        {/* Floating Search Card */}
+        <div className="relative z-20 px-4 -mt-16">
+          <div className="bg-pitch-800/95 backdrop-blur-md rounded-3xl p-5 border border-pitch-600 shadow-xl shadow-black/40">
+            <div className="flex items-center gap-4">
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-3 h-3 rounded-full border-2 border-turf" />
+                <div className="w-px h-10 bg-pitch-600 border-l-2 border-dashed border-pitch-600" />
+                <div className="w-3 h-3 rounded-full bg-turf" />
+              </div>
+              <div className="flex-1 space-y-4">
+                <div>
+                  <p className="text-[10px] text-chalk-dim uppercase tracking-wider font-semibold mb-1">Search Area</p>
+                  <input type="text" placeholder="City or Location" className="w-full bg-transparent text-sm text-chalk focus:outline-none placeholder-chalk-muted font-medium" />
+                </div>
+                <div className="h-px bg-pitch-600/50" />
+                <div>
+                  <p className="text-[10px] text-chalk-dim uppercase tracking-wider font-semibold mb-1">Turf Name</p>
+                  <input type="text" placeholder="Specific Turf (Optional)" className="w-full bg-transparent text-sm text-chalk focus:outline-none placeholder-chalk-muted font-medium" />
+                </div>
+              </div>
+              <div className="w-10 h-10 flex-shrink-0 rounded-2xl bg-pitch-700/50 border border-pitch-600 flex items-center justify-center">
+                <Search className="w-4 h-4 text-chalk" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Horizontal Date Picker */}
+        <div className="mt-8 px-4">
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+            {[20, 21, 22, 23, 24].map((day) => (
+              <button key={day} className={`flex-shrink-0 flex flex-col items-center justify-center w-[60px] h-[75px] rounded-2xl transition-all ${day === 22 ? 'bg-chalk text-pitch-900 shadow-lg shadow-chalk/10' : 'bg-pitch-800/50 text-chalk-muted border border-pitch-600/30'}`}>
+                {day === 22 && <div className="w-4 h-1 bg-turf rounded-full mb-1" />}
+                <span className={`text-xl font-bold font-mono ${day === 22 ? 'text-pitch-900' : 'text-chalk'}`}>{day}</span>
+                <span className="text-[10px] font-medium uppercase tracking-wider">Aug</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Top Rated Turfs */}
+        <div className="mt-8 px-4 pb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-display tracking-wider text-chalk">Top Rated</h2>
+            <Link href="/turfs" className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-pitch-800 border border-pitch-600/50 text-xs font-medium text-chalk hover:bg-pitch-700 transition-colors">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+              Filter
+            </Link>
+          </div>
+
+          <div className="space-y-4">
+            {topTurfs.map((turf) => (
+              <Link key={turf.id} href={`/turfs/${turf.id}`} className="block bg-pitch-950 rounded-3xl p-5 border border-pitch-700/50 shadow-lg">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="px-2.5 py-1 rounded-full border border-turf/30 text-[10px] font-bold text-turf tracking-wider bg-turf/10 uppercase">Top</span>
+                  <span className="text-sm font-semibold text-chalk truncate">{turf.name}</span>
+                </div>
+                
+                <div className="flex justify-between items-end mb-4">
+                  <div>
+                    <p className="text-[10px] text-chalk-dim uppercase tracking-wider mb-1">Location</p>
+                    <p className="text-xs text-chalk font-medium truncate max-w-[150px]">{turf.address}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-chalk-dim uppercase tracking-wider mb-1">Rating</p>
+                    <p className="text-xs text-chalk font-medium flex items-center gap-1 justify-end">
+                      <Star className="w-3.5 h-3.5 text-amber fill-amber" />
+                      {turf.avg_rating}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-2.5 h-2.5 rounded-full bg-turf" />
+                  <div className="flex-1 h-px bg-pitch-700 border-t-2 border-dashed border-pitch-600" />
+                  <div className="w-10 h-10 rounded-full bg-pitch-800 border border-pitch-600 flex items-center justify-center p-2">
+                    <div className="w-full h-full">{SPORT_ICONS[turf.sports[0]]}</div>
+                  </div>
+                  <div className="flex-1 h-px bg-pitch-700 border-t-2 border-dashed border-pitch-600" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-turf" />
+                </div>
+
+                <div className="bg-pitch-900 rounded-2xl p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-chalk">{turf.size || 'Standard Size'}</p>
+                    <p className="text-[10px] text-chalk-dim mt-0.5 capitalize">{turf.sports.join(', ')}</p>
+                  </div>
+                  <p className="text-lg font-mono font-bold text-chalk">
+                    {formatCurrency(turf.price_per_hour)}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════
+          DESKTOP VIEW (Original Layout)
+          ═══════════════════════════════════════ */}
+      <div className="hidden md:block">
+        <section 
+          className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-cover bg-center bg-fixed"
+          style={{ backgroundImage: "url('/background.jpg')" }}
+        >
+          {/* Dark overlay to ensure text remains readable */}
+          <div className="absolute inset-0 bg-pitch-950/80" />
 
         {/* Large ambient blobs for visual interest */}
         <div className="absolute top-[10%] left-[10%] w-[500px] h-[500px] bg-turf/[0.07] rounded-full blur-[120px] animate-pulse" />
@@ -403,6 +531,41 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════
+          APP DOWNLOAD BANNER
+          ═══════════════════════════════════════ */}
+      <section className="relative py-24 px-4 bg-pitch-950 overflow-hidden flex justify-center">
+        <div className="relative z-10 w-full max-w-5xl bg-pitch-800/80 rounded-[40px] p-12 sm:p-16 flex flex-col md:flex-row items-center justify-between border border-pitch-700/50 shadow-2xl mt-10 min-h-[300px]">
+          <div className="md:w-3/5 space-y-8 text-center md:text-left z-10">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-chalk leading-tight tracking-tight">
+              Get the 'Surf The Turf' app for a seamless experience!
+            </h2>
+            <div className="flex flex-wrap justify-center md:justify-start gap-4">
+              <button className="flex items-center justify-center gap-3 px-6 py-3 bg-black border border-pitch-700 rounded-xl hover:border-chalk transition-all min-w-[180px]">
+                <div className="text-left">
+                  <p className="text-[10px] text-chalk-dim uppercase tracking-wider">GET IT ON</p>
+                  <p className="text-lg font-bold text-white leading-tight">Google Play</p>
+                </div>
+              </button>
+              <button className="flex items-center justify-center gap-3 px-6 py-3 bg-black border border-pitch-700 rounded-xl hover:border-chalk transition-all min-w-[180px]">
+                <div className="text-left">
+                  <p className="text-[10px] text-chalk-dim uppercase tracking-wider">Download on the</p>
+                  <p className="text-lg font-bold text-white leading-tight">App Store</p>
+                </div>
+              </button>
+            </div>
+          </div>
+          
+          <div className="hidden md:block md:w-1/3">
+            {/* Phone Mockup Placeholder */}
+            <div className="w-[280px] h-[500px] bg-pitch-900 border-[12px] border-black rounded-[40px] shadow-2xl absolute top-1/2 -translate-y-1/2 right-12 overflow-hidden flex flex-col z-20">
+              <div className="w-24 h-6 bg-black absolute top-0 left-1/2 -translate-x-1/2 rounded-b-xl z-20"></div>
+              <div className="flex-1 bg-white flex items-center justify-center text-pitch-800 font-bold">App Screenshot</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════
           CTA BANNER
           ═══════════════════════════════════════ */}
       <section className="relative py-28 px-4 bg-pitch-950 overflow-hidden">
@@ -439,6 +602,7 @@ export default function HomePage() {
           </div>
         </motion.div>
       </section>
+      </div>
     </div>
   );
 }
