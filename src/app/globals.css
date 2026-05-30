@@ -1,26 +1,361 @@
 @import "tailwindcss";
 
+/* ========================================
+   TURFBOOK — "Field at Night" Design System
+   ======================================== */
+
+/* --- Theme Tokens --- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Pitch (backgrounds) */
+  --pitch-950: #060606;
+  --pitch-900: #0a0a0a;
+  --pitch-800: #121212;
+  --pitch-700: #1a1a1a;
+  --pitch-600: #262626;
+  --pitch-500: #3a3a3a;
+  --pitch-400: #525252;
+
+  /* Turf Green (accent) */
+  --turf: #22c55e;
+  --turf-light: #4ade80;
+  --turf-dark: #16a34a;
+  --turf-muted: rgba(34, 197, 94, 0.12);
+
+  /* Amber (CTA) */
+  --amber: #f59e0b;
+  --amber-light: #fbbf24;
+  --amber-dark: #d97706;
+
+  /* Chalk (text) */
+  --chalk: #f5f5f0;
+  --chalk-muted: #a3a3a3;
+  --chalk-dim: #737373;
+
+  /* Danger */
+  --danger: #ef4444;
+  --danger-dark: #dc2626;
+
+  /* Fonts */
+  --font-display: 'Bebas Neue', Impact, sans-serif;
+  --font-body: 'DM Sans', -apple-system, sans-serif;
+  --font-mono: 'Roboto Mono', 'Courier New', monospace;
+
+  /* Sizing */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* --- Tailwind v4 Theme Registration --- */
+@theme {
+  --color-pitch-950: #060606;
+  --color-pitch-900: #0a0a0a;
+  --color-pitch-800: #121212;
+  --color-pitch-700: #1a1a1a;
+  --color-pitch-600: #262626;
+  --color-pitch-500: #3a3a3a;
+  --color-pitch-400: #525252;
+
+  --color-turf: #22c55e;
+  --color-turf-light: #4ade80;
+  --color-turf-dark: #16a34a;
+  --color-turf-muted: rgba(34, 197, 94, 0.12);
+
+  --color-amber: #f59e0b;
+  --color-amber-light: #fbbf24;
+  --color-amber-dark: #d97706;
+
+  --color-chalk: #f5f5f0;
+  --color-chalk-muted: #a3a3a3;
+  --color-chalk-dim: #737373;
+
+  --color-danger: #ef4444;
+  --color-danger-dark: #dc2626;
+
+  --font-display: "Bebas Neue", Impact, sans-serif;
+  --font-body: "DM Sans", -apple-system, sans-serif;
+  --font-mono: "Roboto Mono", "Courier New", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* --- Base Styles --- */
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #0a0a0a;
+  color: #f5f5f0;
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--pitch-800);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--pitch-500);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--turf);
+}
+
+/* --- Grain Texture Overlay --- */
+.grain-overlay {
+  position: relative;
+}
+
+.grain-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ========================================
+   GLASSMORPHISM & CARD SYSTEM
+   ======================================== */
+
+.glass-panel {
+  background: rgba(18, 18, 18, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.glass-card {
+  background: rgba(18, 18, 18, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(34, 197, 94, 0.25);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(34, 197, 94, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* --- Glow Utilities --- */
+.glow-accent {
+  box-shadow:
+    0 0 20px rgba(34, 197, 94, 0.15),
+    0 0 60px rgba(34, 197, 94, 0.05);
+}
+
+.glow-amber {
+  box-shadow:
+    0 0 20px rgba(245, 158, 11, 0.15),
+    0 0 60px rgba(245, 158, 11, 0.05);
+}
+
+/* ========================================
+   AMBIENT GLOW BACKGROUNDS
+   (These make glassmorphism actually visible)
+   ======================================== */
+
+.ambient-glow {
+  position: relative;
+}
+
+.ambient-glow::before {
+  content: '';
+  position: absolute;
+  top: 15%;
+  left: -5%;
+  width: 40%;
+  height: 60%;
+  background: radial-gradient(ellipse, rgba(34, 197, 94, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ambient-glow::after {
+  content: '';
+  position: absolute;
+  bottom: 10%;
+  right: -5%;
+  width: 40%;
+  height: 60%;
+  background: radial-gradient(ellipse, rgba(245, 158, 11, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ========================================
+   SLOT GRID COLORS
+   ======================================== */
+
+.slot-available {
+  background: var(--turf-muted);
+  border: 1px solid var(--turf);
+  color: var(--turf);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.slot-available:hover {
+  background: rgba(34, 197, 94, 0.25);
+  transform: scale(1.02);
+}
+
+.slot-selected {
+  background: var(--amber);
+  border: 1px solid var(--amber-light);
+  color: var(--pitch-900);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.slot-booked {
+  background: var(--pitch-600);
+  border: 1px solid var(--pitch-500);
+  color: var(--chalk-dim);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.slot-blocked {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--danger);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ========================================
+   TICKET STUB
+   ======================================== */
+
+.ticket-stub {
+  position: relative;
+  background: var(--pitch-700);
+  border-radius: var(--radius-lg);
+  overflow: visible;
+}
+
+.ticket-stub::before {
+  content: '';
+  position: absolute;
+  left: 35%;
+  top: -8px;
+  bottom: -8px;
+  width: 2px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--pitch-600) 0px,
+    var(--pitch-600) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+}
+
+.ticket-stub::after {
+  content: '';
+  position: absolute;
+  left: calc(35% - 7px);
+  top: -8px;
+  width: 16px;
+  height: 16px;
+  background: var(--pitch-900);
+  border-radius: 50%;
+  box-shadow: 0 calc(100% + 0px) 0 0 var(--pitch-900);
+}
+
+/* ========================================
+   GRADIENT TEXT UTILITIES
+   ======================================== */
+
+.text-gradient-turf {
+  background: linear-gradient(135deg, #22c55e, #4ade80, #86efac);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-amber {
+  background: linear-gradient(135deg, #d97706, #f59e0b, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.bg-gradient-cta {
+  background: linear-gradient(135deg, var(--amber-dark), var(--amber), var(--amber-light));
+}
+
+.bg-gradient-turf {
+  background: linear-gradient(135deg, var(--turf-dark), var(--turf));
+}
+
+/* ========================================
+   ANIMATED GRADIENT HERO BACKGROUND
+   ======================================== */
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.hero-gradient {
+  background: linear-gradient(
+    135deg,
+    #060606 0%,
+    #0a1a0e 25%,
+    #0a0a0a 50%,
+    #1a150a 75%,
+    #060606 100%
+  );
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+/* ========================================
+   CUSTOM FOCUS STYLES
+   ======================================== */
+
+input:focus,
+select:focus,
+textarea:focus,
+button:focus-visible {
+  outline: 2px solid var(--turf);
+  outline-offset: 2px;
+}
+
+
+/* ========================================
+   SCROLLBAR HIDE UTILITY
+   ======================================== */
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
