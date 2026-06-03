@@ -160,8 +160,10 @@ export default function Navbar() {
             )}
           </div>
           <div>
-            <p className="text-xs text-chalk-dim font-medium">Welcome back,</p>
-            <p className="text-sm font-display tracking-wide text-chalk">
+            <p className="text-xs text-chalk-dim font-medium">
+              {user ? 'Welcome back,' : 'Hello,'}
+            </p>
+            <p className="text-sm font-display tracking-wide text-chalk uppercase">
               {user ? user.full_name : 'Guest Player'}
             </p>
           </div>
