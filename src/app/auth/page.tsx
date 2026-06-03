@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -25,7 +25,15 @@ function AuthContent() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/';
   const roleParam = searchParams.get('role') as SignupRole | null;
-  const { setUser } = useAuthStore();
+  const { user, setUser } = useAuthStore();
+
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'admin') router.push('/admin');
+      else if (user.role === 'owner') router.push('/dashboard');
+      else router.push(redirect);
+    }
+  }, [user, router, redirect]);
 
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
@@ -35,6 +43,7 @@ function AuthContent() {
   const [signupRole, setSignupRole] = useState<SignupRole>(roleParam === 'owner' ? 'owner' : 'user');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const supabase = createClient();
 
@@ -42,6 +51,7 @@ function AuthContent() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
       if (mode === 'signup') {
@@ -65,6 +75,14 @@ function AuthContent() {
         }
 
         if (data.user) {
+          if (!data.session) {
+            // Email confirmation is required
+            setSuccess('Account created! Please check your email to confirm your account.');
+            setMode('login');
+            setIsLoading(false);
+            return;
+          }
+
           // Wait a moment for the trigger to create the profile
           await new Promise((resolve) => setTimeout(resolve, 1000));
           const profile = await fetchProfile(data.user.id);
@@ -146,7 +164,7 @@ function AuthContent() {
             {(['login', 'signup'] as AuthMode[]).map((m) => (
               <button
                 key={m}
-                onClick={() => { setMode(m); setError(null); }}
+                onClick={() => { setMode(m); setError(null); setSuccess(null); }}
                 className={`flex-1 py-3.5 text-sm font-semibold transition-all relative ${
                   mode === m ? 'text-turf' : 'text-chalk-dim hover:text-chalk'
                 }`}
@@ -174,6 +192,23 @@ function AuthContent() {
                 >
                   <AlertCircle className="w-4 h-4 text-danger shrink-0 mt-0.5" />
                   <p className="text-sm text-danger">{error}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Success display */}
+            <AnimatePresence mode="wait">
+              {success && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-turf/10 border border-turf/30 rounded-xl p-3 flex items-start gap-2"
+                >
+                  <svg className="w-4 h-4 text-turf shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p className="text-sm text-turf">{success}</p>
                 </motion.div>
               )}
             </AnimatePresence>

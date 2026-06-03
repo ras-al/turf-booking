@@ -99,10 +99,15 @@ export default function TurfDetailPage() {
     <div className="min-h-screen bg-pitch-900">
       {/* Hero header */}
       <div className="relative h-64 bg-gradient-to-br from-pitch-700 via-pitch-800 to-pitch-900 grain-overlay">
-        <div className="absolute inset-0 flex items-center justify-center opacity-10 [&>svg]:w-64 [&>svg]:h-64 [&>img]:w-64 [&>img]:h-64 [&>img]:object-contain">
-          {SPORT_ICONS[turf.sports[0]] || <MapPin className="w-64 h-64" />}
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-pitch-900 to-transparent h-32" />
+        {turf.photos && turf.photos.length > 0 ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={turf.photos[0]} alt={turf.name} className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-40" />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center opacity-10 [&>svg]:w-64 [&>svg]:h-64 [&>img]:w-64 [&>img]:h-64 [&>img]:object-contain">
+            {SPORT_ICONS[turf.sports[0]] || <MapPin className="w-64 h-64" />}
+          </div>
+        )}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-pitch-900 to-transparent h-48" />
         <div className="absolute bottom-6 left-0 right-0 max-w-6xl mx-auto px-4">
           <div className="flex items-end justify-between">
             <div>

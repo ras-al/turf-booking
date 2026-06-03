@@ -15,13 +15,18 @@ function TurfListCard({ turf }: { turf: Turf }) {
     <motion.div layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} whileHover={{ y: -3 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }}>
       <Link href={`/turfs/${turf.id}`} className="block glass-card overflow-hidden hover:border-turf/30 transition-all group hover:glow-accent">
         <div className="h-40 bg-gradient-to-br from-pitch-700/80 to-pitch-800/80 relative overflow-hidden grain-overlay">
-          <div className="absolute inset-0 flex items-center justify-center group-hover:scale-110 transition-all duration-500">
-            {SPORT_ICONS[turf.sports[0]] ? (
-              <div className="w-16 h-16 [&>svg]:w-full [&>svg]:h-full opacity-30 text-pitch-500 group-hover:text-turf/20">{SPORT_ICONS[turf.sports[0]]}</div>
-            ) : (
-              <MapPin className="w-16 h-16 opacity-30 text-pitch-500 group-hover:text-turf/20" />
-            )}
-          </div>
+          {turf.photos && turf.photos.length > 0 ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={turf.photos[0]} alt={turf.name} className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-60 group-hover:scale-105 transition-transform duration-500" />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center group-hover:scale-110 transition-all duration-500">
+              {SPORT_ICONS[turf.sports[0]] ? (
+                <div className="w-16 h-16 [&>svg]:w-full [&>svg]:h-full opacity-30 text-pitch-500 group-hover:text-turf/20">{SPORT_ICONS[turf.sports[0]]}</div>
+              ) : (
+                <MapPin className="w-16 h-16 opacity-30 text-pitch-500 group-hover:text-turf/20" />
+              )}
+            </div>
+          )}
           <div className="absolute top-3 left-3 flex gap-1.5 z-10">
             {turf.sports.slice(0, 2).map((sport) => (
               <span key={sport} className="px-2 py-1 text-xs font-semibold bg-pitch-900/60 border border-turf/20 text-turf rounded-md backdrop-blur-md capitalize flex items-center gap-1">

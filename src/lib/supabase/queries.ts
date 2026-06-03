@@ -72,6 +72,46 @@ export async function fetchAllTurfs(): Promise<Turf[]> {
   return data || [];
 }
 
+/** Create a new turf (owner registration — requires admin approval) */
+export async function createTurf(turf: {
+  owner_id: string;
+  name: string;
+  description?: string;
+  address: string;
+  city: string;
+  latitude?: number;
+  longitude?: number;
+  photos?: string[];
+  amenities?: string[];
+  sports: string[];
+  size?: string;
+  price_per_hour: number;
+}): Promise<Turf> {
+  const { data, error } = await supabase
+    .from('turfs')
+    .insert({
+      owner_id: turf.owner_id,
+      name: turf.name,
+      description: turf.description || null,
+      address: turf.address,
+      city: turf.city,
+      latitude: turf.latitude || null,
+      longitude: turf.longitude || null,
+      photos: turf.photos || [],
+      amenities: turf.amenities || [],
+      sports: turf.sports,
+      size: turf.size || null,
+      price_per_hour: turf.price_per_hour,
+      is_active: true,
+      is_approved: false, // Admin must approve
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 /** Update turf approval status (admin) */
 export async function updateTurfApproval(turfId: string, isApproved: boolean): Promise<void> {
   const { error } = await supabase
@@ -208,6 +248,41 @@ export async function fetchReviews(turfId: string): Promise<Review[]> {
 
   if (error) throw error;
   return data || [];
+}
+
+/** Create a review */
+export async function createReview(review: {
+  user_id: string;
+  turf_id: string;
+  rating: number;
+  text?: string;
+}): Promise<Review> {
+  const { data, error } = await supabase
+    .from('reviews')
+    .insert({
+      user_id: review.user_id,
+      turf_id: review.turf_id,
+      rating: review.rating,
+      text: review.text || null,
+      photos: [],
+    })
+    .select('*, user:profiles!reviews_user_id_fkey(*)')
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/** Check if a user has already reviewed a turf */
+export async function hasUserReviewed(userId: string, turfId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('reviews')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('turf_id', turfId)
+    .maybeSingle();
+
+  return !!data;
 }
 
 // ═══════════════════════════════════════

@@ -60,7 +60,7 @@ export default function DashboardPage() {
               <h1 className="text-2xl font-display tracking-wider text-chalk">OWNER <span className="text-turf">DASHBOARD</span></h1>
               <p className="text-sm text-chalk-dim mt-0.5">Welcome back, {user?.full_name || 'Owner'}</p>
             </div>
-            <Link href="/auth?role=owner" className="flex items-center gap-2 px-4 py-2 text-xs font-medium bg-turf/10 border border-turf/30 text-turf rounded-lg hover:bg-turf/20 transition-colors">
+            <Link href="/dashboard/register-turf" className="flex items-center gap-2 px-4 py-2 text-xs font-medium bg-turf/10 border border-turf/30 text-turf rounded-lg hover:bg-turf/20 transition-colors">
               <Plus className="w-3.5 h-3.5" /> Register New Turf
             </Link>
           </div>
@@ -182,7 +182,7 @@ export default function DashboardPage() {
             {ownerTurfs.length === 0 ? (
               <div className="col-span-full text-center py-16">
                 <p className="text-chalk-dim mb-4">You haven&apos;t registered any turfs yet.</p>
-                <Link href="/auth?role=owner" className="px-6 py-3 bg-turf text-pitch-900 rounded-xl font-semibold text-sm">Register a Turf</Link>
+                <Link href="/dashboard/register-turf" className="px-6 py-3 bg-turf text-pitch-900 rounded-xl font-semibold text-sm">Register a Turf</Link>
               </div>
             ) : ownerTurfs.map((turf, i) => (
               <motion.div key={turf.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="glass-panel rounded-2xl p-5">
