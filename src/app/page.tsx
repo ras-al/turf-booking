@@ -8,7 +8,7 @@ import { formatCurrency, SPORT_ICONS } from '@/lib/utils';
 import type { Turf } from '@/types';
 import {
   Search, Calendar, Trophy, MapPin, Star, ChevronRight,
-  Zap, Clock, Shield,
+  Zap, Clock, Shield, Smartphone, Play, Apple
 } from 'lucide-react';
 
 const FEATURED_SPORTS = [
@@ -147,7 +147,7 @@ export default function HomePage() {
             </Link>
           </div>
           {loading ? (
-            <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-48 bg-pitch-800/50 rounded-3xl animate-pulse" />)}</div>
+            <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-48 bg-pitch-800/50 rounded-3xl animate-pulse" />)}</div>
           ) : topTurfs.length === 0 ? (
             <div className="text-center py-10"><p className="text-chalk-dim text-sm">No turfs available yet.</p></div>
           ) : (
@@ -294,7 +294,7 @@ export default function HomePage() {
             </motion.div>
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {[1,2,3].map(i => <div key={i} className="h-72 bg-pitch-800/50 rounded-2xl animate-pulse" />)}
+                {[1, 2, 3].map(i => <div key={i} className="h-72 bg-pitch-800/50 rounded-2xl animate-pulse" />)}
               </div>
             ) : topTurfs.length === 0 ? (
               <div className="text-center py-16">
@@ -330,6 +330,51 @@ export default function HomePage() {
               <Link href="/turfs" className="px-8 py-4 bg-pitch-800/60 backdrop-blur-sm border border-pitch-500/50 text-chalk font-semibold rounded-xl hover:border-chalk-dim/50 transition-all hover:-translate-y-0.5 text-sm">Explore Turfs</Link>
             </div>
           </motion.div>
+        </section>
+
+        {/* DOWNLOAD APP SECTION */}
+        <section className="py-24 px-4 border-t border-pitch-800">
+          <div className="max-w-6xl mx-auto">
+            <div className="glass-panel rounded-3xl p-8 sm:p-12 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-turf/[0.03] rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3" />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
+                <div>
+                  <h2 className="text-3xl sm:text-4xl font-display tracking-wider text-chalk mb-4">TAKE THE GAME <span className="text-turf">ANYWHERE</span></h2>
+                  <p className="text-chalk-muted text-lg mb-8">Download the TurfBook app to book your favorite turfs on the go, manage your reservations, and get instant notifications.</p>
+
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    {/* Google Play Button */}
+                    <Link href="#" className="flex items-center gap-3 bg-pitch-800 hover:bg-pitch-700 border border-pitch-600 px-6 py-3.5 rounded-xl transition-all hover:border-turf/50 group">
+                      <Play className="w-8 h-8 text-turf group-hover:scale-110 transition-transform" />
+                      <div>
+                        <div className="text-[10px] text-chalk-dim uppercase tracking-wider font-semibold">Get it on</div>
+                        <div className="text-lg font-display tracking-wide text-chalk">Google Play</div>
+                      </div>
+                    </Link>
+
+                    {/* App Store Button */}
+                    <Link href="#" className="flex items-center gap-3 bg-pitch-800 hover:bg-pitch-700 border border-pitch-600 px-6 py-3.5 rounded-xl transition-all hover:border-chalk-dim/50 group">
+                      <Apple className="w-8 h-8 text-chalk group-hover:scale-110 transition-transform" />
+                      <div>
+                        <div className="text-[10px] text-chalk-dim uppercase tracking-wider font-semibold">Download on the</div>
+                        <div className="text-lg font-display tracking-wide text-chalk">App Store</div>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="flex justify-center lg:justify-end">
+                  <div className="relative w-64 h-[500px] glass-card rounded-[3rem] border-8 border-pitch-950 overflow-hidden shadow-2xl flex items-center justify-center bg-pitch-900">
+                    <Smartphone className="w-24 h-24 text-turf/20" />
+                    <div className="absolute top-0 w-full h-full bg-gradient-to-b from-turf/10 to-transparent" />
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-center w-full">
+                      <div className="text-turf font-display tracking-widest text-xl opacity-50">TURFBOOK</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </div>
