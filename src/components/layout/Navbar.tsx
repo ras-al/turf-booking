@@ -1,45 +1,87 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth-store';
-import { Home, Search, Calendar, User, LogIn, Bell } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { Home, Search, Calendar, User, LogIn, LogOut, LayoutDashboard, Shield } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 
 export default function Navbar() {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const pathname = usePathname();
+  const router = useRouter();
 
-  const navLinks = [
-    { href: '/', label: 'Home', icon: Home },
-    { href: '/turfs', label: 'Find Turfs', icon: Search },
-  ];
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  };
 
-  const authLinks = user
-    ? [
-        { href: '/booking/history', label: 'Bookings', icon: Calendar },
-        ...(user.role === 'owner' ? [{ href: '/dashboard', label: 'Dashboard', icon: User }] : []),
-        ...(user.role === 'admin' ? [{ href: '/admin', label: 'Admin', icon: User }] : []),
-        { href: '/profile', label: 'Profile', icon: User }, // Or just a placeholder if profile doesn't exist
-      ]
-    : [
-        { href: '/auth', label: 'Sign In', icon: LogIn }
+  // ═══════════════════════════════════════
+  // Role-based navigation links
+  // ═══════════════════════════════════════
+
+  // Desktop nav links (middle section)
+  const getDesktopNavLinks = () => {
+    if (!user) {
+      return [
+        { href: '/', label: 'Home' },
+        { href: '/turfs', label: 'Find Turfs' },
       ];
+    }
 
-  // Pick max 4 icons for mobile bottom nav
-  const mobileNavLinks = [...navLinks];
-  if (user) {
-    mobileNavLinks.push({ href: '/booking/history', label: 'Bookings', icon: Calendar });
-    if (user.role === 'owner') mobileNavLinks.push({ href: '/dashboard', label: 'Dashboard', icon: User });
-    else if (user.role === 'admin') mobileNavLinks.push({ href: '/admin', label: 'Admin', icon: User });
-    else mobileNavLinks.push({ href: '/profile', label: 'Profile', icon: User });
-  } else {
-    mobileNavLinks.push({ href: '/auth', label: 'Sign In', icon: LogIn });
-  }
+    switch (user.role) {
+      case 'admin':
+        return [
+          { href: '/', label: 'Home' },
+          { href: '/admin', label: 'Admin Panel' },
+        ];
+      case 'owner':
+        return [
+          { href: '/', label: 'Home' },
+          { href: '/turfs', label: 'Find Turfs' },
+          { href: '/dashboard', label: 'Dashboard' },
+        ];
+      default: // 'user'
+        return [
+          { href: '/', label: 'Home' },
+          { href: '/turfs', label: 'Find Turfs' },
+          { href: '/booking/history', label: 'My Bookings' },
+        ];
+    }
+  };
 
-  // Ensure only 4 items max for mobile to look good
-  const finalMobileLinks = mobileNavLinks.slice(0, 4);
+  // Mobile bottom nav links (max 4)
+  const getMobileNavLinks = () => {
+    if (!user) {
+      return [
+        { href: '/', label: 'Home', icon: Home },
+        { href: '/turfs', label: 'Find Turfs', icon: Search },
+        { href: '/auth', label: 'Sign In', icon: LogIn },
+      ];
+    }
+
+    switch (user.role) {
+      case 'admin':
+        return [
+          { href: '/', label: 'Home', icon: Home },
+          { href: '/admin', label: 'Admin', icon: Shield },
+        ];
+      case 'owner':
+        return [
+          { href: '/', label: 'Home', icon: Home },
+          { href: '/turfs', label: 'Turfs', icon: Search },
+          { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        ];
+      default: // 'user'
+        return [
+          { href: '/', label: 'Home', icon: Home },
+          { href: '/turfs', label: 'Turfs', icon: Search },
+          { href: '/booking/history', label: 'Bookings', icon: Calendar },
+        ];
+    }
+  };
+
+  const desktopLinks = getDesktopNavLinks();
+  const mobileLinks = getMobileNavLinks();
 
   return (
     <>
@@ -59,7 +101,7 @@ export default function Navbar() {
 
             {/* Desktop Nav */}
             <div className="flex items-center gap-1">
-              {navLinks.map((link) => (
+              {desktopLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
@@ -70,46 +112,28 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              {user && (
-                <Link
-                  href="/booking/history"
-                  className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg hover:bg-pitch-700/40 ${
-                    pathname === '/booking/history' ? 'text-turf bg-turf/10' : 'text-chalk-muted hover:text-chalk'
-                  }`}
-                >
-                  My Bookings
-                </Link>
-              )}
-              {user?.role === 'owner' && (
-                <Link
-                  href="/dashboard"
-                  className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg hover:bg-pitch-700/40 ${
-                    pathname === '/dashboard' ? 'text-turf bg-turf/10' : 'text-chalk-muted hover:text-chalk'
-                  }`}
-                >
-                  Dashboard
-                </Link>
-              )}
-              {user?.role === 'admin' && (
-                <Link
-                  href="/admin"
-                  className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg hover:bg-pitch-700/40 ${
-                    pathname === '/admin' ? 'text-turf bg-turf/10' : 'text-chalk-muted hover:text-chalk'
-                  }`}
-                >
-                  Admin
-                </Link>
-              )}
             </div>
 
-            {/* Auth Button */}
+            {/* Auth Section */}
             <div className="flex items-center gap-3">
               {user ? (
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-turf/15 border border-turf/30 flex items-center justify-center text-turf text-sm font-semibold">
-                    {user.full_name.charAt(0)}
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-turf/15 border border-turf/30 flex items-center justify-center text-turf text-sm font-semibold">
+                      {user.full_name.charAt(0)}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm text-chalk-muted leading-none">{user.full_name}</span>
+                      <span className="text-[10px] text-chalk-dim capitalize">{user.role}</span>
+                    </div>
                   </div>
-                  <span className="text-sm text-chalk-muted">{user.full_name}</span>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-danger/80 hover:text-danger hover:bg-danger/10 rounded-lg border border-transparent hover:border-danger/20 transition-all"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Logout
+                  </button>
                 </div>
               ) : (
                 <Link
@@ -125,8 +149,8 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Top Header (Wireframe style) */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 h-16 flex items-center justify-between px-4">
+      {/* Mobile Top Header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 h-16 flex items-center justify-between px-4 bg-pitch-900/80 backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-turf/20 border-2 border-turf/30 flex items-center justify-center overflow-hidden">
             {user ? (
@@ -142,15 +166,27 @@ export default function Navbar() {
             </p>
           </div>
         </div>
-        <button className="w-10 h-10 rounded-full bg-pitch-800/80 backdrop-blur-sm border border-pitch-600/50 flex items-center justify-center text-chalk hover:text-turf transition-colors">
-          <Bell className="w-5 h-5" />
-        </button>
+        {user ? (
+          <button
+            onClick={handleLogout}
+            className="w-10 h-10 rounded-full bg-pitch-800/80 backdrop-blur-sm border border-pitch-600/50 flex items-center justify-center text-danger/70 hover:text-danger transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        ) : (
+          <Link
+            href="/auth"
+            className="w-10 h-10 rounded-full bg-turf/20 border border-turf/30 flex items-center justify-center text-turf"
+          >
+            <LogIn className="w-5 h-5" />
+          </Link>
+        )}
       </div>
 
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-pitch-900/90 backdrop-blur-xl border-t border-pitch-600/50 pb-safe">
         <div className="flex items-center justify-around h-16 px-2">
-          {finalMobileLinks.map((link) => {
+          {mobileLinks.map((link) => {
             const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
             const Icon = link.icon;
             

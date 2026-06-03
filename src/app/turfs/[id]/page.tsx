@@ -1,23 +1,20 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { MOCK_TURFS, MOCK_SLOTS, MOCK_REVIEWS } from '@/lib/mock-data';
+import { fetchTurfById, fetchSlots, fetchReviews } from '@/lib/supabase/queries';
 import { formatCurrency, formatTime, formatDateShort, getDateRange, SPORT_ICONS, AMENITY_ICONS } from '@/lib/utils';
 import { useBookingStore } from '@/stores/booking-store';
-import type { Slot } from '@/types';
-import { MapPin, Navigation, Star, ArrowLeft } from 'lucide-react';
+import type { Turf, Slot, Review } from '@/types';
+import { MapPin, Navigation, Star, ArrowLeft, Loader2 } from 'lucide-react';
 
 function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          className={`w-4 h-4 ${star <= rating ? 'text-amber fill-amber' : 'text-pitch-600 fill-pitch-600'}`}
-        />
+        <Star key={star} className={`w-4 h-4 ${star <= rating ? 'text-amber fill-amber' : 'text-pitch-600 fill-pitch-600'}`} />
       ))}
     </div>
   );
@@ -28,30 +25,55 @@ export default function TurfDetailPage() {
   const router = useRouter();
   const turfId = params.id as string;
 
-  const turf = MOCK_TURFS.find((t) => t.id === turfId);
-  const reviews = MOCK_REVIEWS.filter((r) => r.turf_id === turfId);
+  const [turf, setTurf] = useState<Turf | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [daySlots, setDaySlots] = useState<Slot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [slotsLoading, setSlotsLoading] = useState(false);
 
   const { selectedDate, setSelectedDate, selectedSlots, toggleSlot, setSelectedTurf, totalAmount } = useBookingStore();
-
   const dates = getDateRange(7);
 
-  const daySlots = useMemo(() => {
-    const allSlots = MOCK_SLOTS[turfId] || [];
-    return allSlots.filter((s) => s.date === selectedDate);
+  // Fetch turf details and reviews
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const [turfData, reviewsData] = await Promise.all([
+        fetchTurfById(turfId),
+        fetchReviews(turfId),
+      ]);
+      setTurf(turfData);
+      setReviews(reviewsData);
+      if (turfData) setSelectedTurf(turfData);
+      setLoading(false);
+    }
+    load();
+  }, [turfId, setSelectedTurf]);
+
+  // Fetch slots when date changes
+  useEffect(() => {
+    async function loadSlots() {
+      setSlotsLoading(true);
+      const slots = await fetchSlots(turfId, selectedDate);
+      setDaySlots(slots);
+      setSlotsLoading(false);
+    }
+    loadSlots();
   }, [turfId, selectedDate]);
 
-  // Set turf in store when page loads
-  useState(() => {
-    if (turf) setSelectedTurf(turf);
-  });
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-pitch-900 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-turf animate-spin" />
+      </div>
+    );
+  }
 
   if (!turf) {
     return (
       <div className="min-h-screen bg-pitch-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="flex justify-center mb-4">
-            <MapPin className="w-16 h-16 text-chalk-dim/50" />
-          </div>
+          <div className="flex justify-center mb-4"><MapPin className="w-16 h-16 text-chalk-dim/50" /></div>
           <h2 className="text-2xl font-display text-chalk">TURF NOT FOUND</h2>
           <Link href="/turfs" className="mt-4 flex items-center justify-center gap-2 text-sm text-turf hover:underline">
             <ArrowLeft className="w-4 h-4" /> Back to Turfs
@@ -87,23 +109,13 @@ export default function TurfDetailPage() {
               <div className="flex gap-1.5 mb-2">
                 {turf.sports.map((sport) => (
                   <span key={sport} className="flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold bg-turf/20 text-turf rounded-md capitalize">
-                    <div className="w-3.5 h-3.5 flex-shrink-0">{SPORT_ICONS[sport]}</div>
-                    {sport}
+                    <div className="w-3.5 h-3.5 flex-shrink-0">{SPORT_ICONS[sport]}</div>{sport}
                   </span>
                 ))}
-                {turf.size && (
-                  <span className="px-2 py-0.5 text-xs font-mono font-bold bg-amber/20 text-amber rounded-md">
-                    {turf.size}
-                  </span>
-                )}
+                {turf.size && <span className="px-2 py-0.5 text-xs font-mono font-bold bg-amber/20 text-amber rounded-md">{turf.size}</span>}
               </div>
-              <h1 className="text-3xl sm:text-4xl font-display tracking-wider text-chalk">
-                {turf.name}
-              </h1>
-              <p className="text-sm text-chalk-muted mt-1 flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                {turf.address}
-              </p>
+              <h1 className="text-3xl sm:text-4xl font-display tracking-wider text-chalk">{turf.name}</h1>
+              <p className="text-sm text-chalk-muted mt-1 flex items-center gap-1"><MapPin className="w-4 h-4" />{turf.address}</p>
             </div>
             <div className="hidden sm:flex items-center gap-3">
               <div className="text-right">
@@ -120,25 +132,18 @@ export default function TurfDetailPage() {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left: Info + Slots */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Description */}
             {turf.description && (
               <section>
                 <h2 className="text-xl font-display tracking-wide text-chalk mb-3">ABOUT</h2>
                 <p className="text-sm text-chalk-muted leading-relaxed">{turf.description}</p>
               </section>
             )}
-
-            {/* Amenities */}
             <section>
               <h2 className="text-xl font-display tracking-wide text-chalk mb-3">AMENITIES</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {turf.amenities.map((amenity) => (
-                  <div
-                    key={amenity}
-                    className="flex items-center gap-2 px-4 py-3 glass-panel rounded-xl"
-                  >
+                  <div key={amenity} className="flex items-center gap-2 px-4 py-3 glass-panel rounded-xl">
                     <span className="text-turf/80">{AMENITY_ICONS[amenity]}</span>
                     <span className="text-sm text-chalk-muted capitalize">{amenity}</span>
                   </div>
@@ -146,64 +151,45 @@ export default function TurfDetailPage() {
               </div>
             </section>
 
-            {/* ═══════ SLOT PICKER ═══════ */}
+            {/* SLOT PICKER */}
             <section>
-              <h2 className="text-xl font-display tracking-wide text-chalk mb-4">
-                PICK YOUR <span className="text-turf">SLOTS</span>
-              </h2>
-
-              {/* Date selector */}
+              <h2 className="text-xl font-display tracking-wide text-chalk mb-4">PICK YOUR <span className="text-turf">SLOTS</span></h2>
               <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
                 {dates.map((date) => {
                   const isSelected = date === selectedDate;
                   const d = new Date(date);
-                  const dayName = d.toLocaleDateString('en-IN', { weekday: 'short' });
-                  const dayNum = d.getDate();
-                  const month = d.toLocaleDateString('en-IN', { month: 'short' });
-
                   return (
-                    <button
-                      key={date}
-                      onClick={() => setSelectedDate(date)}
-                      className={`flex-shrink-0 flex flex-col items-center px-4 py-3 rounded-xl border transition-all ${
-                        isSelected
-                          ? 'bg-turf/10 border-turf text-turf'
-                          : 'bg-pitch-800 border-pitch-600/30 text-chalk-muted hover:border-pitch-500'
-                      }`}
-                    >
-                      <span className="text-xs font-medium uppercase">{dayName}</span>
-                      <span className="text-xl font-mono font-bold mt-0.5">{dayNum}</span>
-                      <span className="text-xs">{month}</span>
+                    <button key={date} onClick={() => setSelectedDate(date)} className={`flex-shrink-0 flex flex-col items-center px-4 py-3 rounded-xl border transition-all ${isSelected ? 'bg-turf/10 border-turf text-turf' : 'bg-pitch-800 border-pitch-600/30 text-chalk-muted hover:border-pitch-500'}`}>
+                      <span className="text-xs font-medium uppercase">{d.toLocaleDateString('en-IN', { weekday: 'short' })}</span>
+                      <span className="text-xl font-mono font-bold mt-0.5">{d.getDate()}</span>
+                      <span className="text-xs">{d.toLocaleDateString('en-IN', { month: 'short' })}</span>
                     </button>
                   );
                 })}
               </div>
-
-              {/* Slot grid */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                {daySlots.map((slot) => {
-                  const isSelected = selectedSlots.some((s) => s.id === slot.id);
-                  let slotClass = 'slot-available';
-                  if (slot.status === 'booked') slotClass = 'slot-booked';
-                  else if (slot.status === 'blocked') slotClass = 'slot-blocked';
-                  else if (isSelected) slotClass = 'slot-selected';
-
-                  return (
-                    <motion.button
-                      key={slot.id}
-                      onClick={() => handleSlotClick(slot)}
-                      disabled={slot.status !== 'available'}
-                      className={`${slotClass} px-2 py-3 rounded-lg text-center font-mono text-sm transition-all`}
-                      whileTap={slot.status === 'available' ? { scale: 0.95 } : undefined}
-                    >
-                      <div className="font-bold">{formatTime(slot.start_time)}</div>
-                      <div className="text-xs opacity-70">{formatTime(slot.end_time)}</div>
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              {/* Legend */}
+              {slotsLoading ? (
+                <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-turf animate-spin" /></div>
+              ) : daySlots.length === 0 ? (
+                <div className="text-center py-10 glass-panel rounded-xl">
+                  <p className="text-chalk-dim text-sm">No slots available for this date. The owner hasn&apos;t added slots yet.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                  {daySlots.map((slot) => {
+                    const isSelected = selectedSlots.some((s) => s.id === slot.id);
+                    let slotClass = 'slot-available';
+                    if (slot.status === 'booked') slotClass = 'slot-booked';
+                    else if (slot.status === 'blocked') slotClass = 'slot-blocked';
+                    else if (isSelected) slotClass = 'slot-selected';
+                    return (
+                      <motion.button key={slot.id} onClick={() => handleSlotClick(slot)} disabled={slot.status !== 'available'} className={`${slotClass} px-2 py-3 rounded-lg text-center font-mono text-sm transition-all`} whileTap={slot.status === 'available' ? { scale: 0.95 } : undefined}>
+                        <div className="font-bold">{formatTime(slot.start_time)}</div>
+                        <div className="text-xs opacity-70">{formatTime(slot.end_time)}</div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
               <div className="flex flex-wrap gap-4 mt-4">
                 {[
                   { label: 'Available', className: 'bg-turf-muted border-turf' },
@@ -220,38 +206,17 @@ export default function TurfDetailPage() {
 
             {/* Reviews */}
             <section>
-              <h2 className="text-xl font-display tracking-wide text-chalk mb-4">
-                REVIEWS <span className="text-chalk-dim font-body text-sm font-normal">({turf.total_reviews})</span>
-              </h2>
-
-              {/* Rating breakdown bar */}
-              <div className="glass-panel p-6 mb-6 rounded-2xl">
-                <div className="flex items-center gap-4">
-                  <div className="text-center">
-                    <div className="text-4xl font-mono font-bold text-chalk">{turf.avg_rating}</div>
-                    <StarRating rating={Math.round(turf.avg_rating)} />
-                  </div>
-                  <div className="flex-1 space-y-1.5">
-                    {[5, 4, 3, 2, 1].map((star) => {
-                      const percent = star === 5 ? 65 : star === 4 ? 25 : star === 3 ? 7 : star === 2 ? 2 : 1;
-                      return (
-                        <div key={star} className="flex items-center gap-2">
-                          <span className="text-xs text-chalk-dim w-3 font-mono">{star}</span>
-                          <div className="flex-1 h-2 bg-pitch-600 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-amber rounded-full transition-all"
-                              style={{ width: `${percent}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-chalk-dim w-8 text-right">{percent}%</span>
-                        </div>
-                      );
-                    })}
+              <h2 className="text-xl font-display tracking-wide text-chalk mb-4">REVIEWS <span className="text-chalk-dim font-body text-sm font-normal">({turf.total_reviews})</span></h2>
+              {reviews.length > 0 && (
+                <div className="glass-panel p-6 mb-6 rounded-2xl">
+                  <div className="flex items-center gap-4">
+                    <div className="text-center">
+                      <div className="text-4xl font-mono font-bold text-chalk">{turf.avg_rating}</div>
+                      <StarRating rating={Math.round(turf.avg_rating)} />
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Review cards */}
+              )}
               <div className="space-y-4">
                 {reviews.map((review) => (
                   <div key={review.id} className="glass-panel p-5 rounded-2xl">
@@ -262,18 +227,15 @@ export default function TurfDetailPage() {
                         </div>
                         <div>
                           <div className="text-sm font-medium text-chalk">{review.user?.full_name}</div>
-                          <div className="text-xs text-chalk-dim">
-                            {new Date(review.created_at).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
-                          </div>
+                          <div className="text-xs text-chalk-dim">{new Date(review.created_at).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</div>
                         </div>
                       </div>
                       <StarRating rating={review.rating} />
                     </div>
-                    {review.text && (
-                      <p className="text-sm text-chalk-muted leading-relaxed">{review.text}</p>
-                    )}
+                    {review.text && <p className="text-sm text-chalk-muted leading-relaxed">{review.text}</p>}
                   </div>
                 ))}
+                {reviews.length === 0 && <p className="text-sm text-chalk-dim text-center py-6">No reviews yet.</p>}
               </div>
             </section>
           </div>
@@ -281,88 +243,46 @@ export default function TurfDetailPage() {
           {/* Right: Sticky booking summary */}
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-4">
-              {/* Price card */}
               <div className="glass-card p-6 border-t-4 border-t-turf relative overflow-hidden glow-accent">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-turf/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
                 <div className="flex items-baseline gap-2 mb-6">
-                  <span className="text-3xl font-mono font-bold text-turf">
-                    {formatCurrency(turf.price_per_hour)}
-                  </span>
+                  <span className="text-3xl font-mono font-bold text-turf">{formatCurrency(turf.price_per_hour)}</span>
                   <span className="text-sm text-chalk-dim">/ hour</span>
                 </div>
-
                 {selectedSlots.length > 0 ? (
                   <>
                     <div className="space-y-2 mb-4">
-                      <div className="text-xs text-chalk-dim uppercase tracking-wider font-semibold">
-                        Selected Slots ({selectedSlots.length})
-                      </div>
+                      <div className="text-xs text-chalk-dim uppercase tracking-wider font-semibold">Selected Slots ({selectedSlots.length})</div>
                       {selectedSlots.map((slot) => (
                         <div key={slot.id} className="flex items-center justify-between text-sm">
-                          <span className="text-chalk-muted">
-                            {formatDateShort(slot.date)} · {formatTime(slot.start_time)}
-                          </span>
-                          <button
-                            onClick={() => toggleSlot(slot)}
-                            className="text-danger text-xs hover:underline"
-                          >
-                            Remove
-                          </button>
+                          <span className="text-chalk-muted">{formatDateShort(slot.date)} · {formatTime(slot.start_time)}</span>
+                          <button onClick={() => toggleSlot(slot)} className="text-danger text-xs hover:underline">Remove</button>
                         </div>
                       ))}
                     </div>
-
                     <div className="border-t border-pitch-600/30 pt-3 mb-4">
                       <div className="flex justify-between text-sm">
                         <span className="text-chalk-muted">Total</span>
-                        <span className="text-xl font-mono font-bold text-chalk">
-                          {formatCurrency(amount)}
-                        </span>
+                        <span className="text-xl font-mono font-bold text-chalk">{formatCurrency(amount)}</span>
                       </div>
                     </div>
-
-                    <button
-                      onClick={handleProceedToBook}
-                      className="w-full py-3 bg-gradient-cta text-pitch-900 font-semibold rounded-xl hover:shadow-lg hover:shadow-amber/25 transition-all text-sm"
-                    >
+                    <button onClick={handleProceedToBook} className="w-full py-3 bg-gradient-cta text-pitch-900 font-semibold rounded-xl hover:shadow-lg hover:shadow-amber/25 transition-all text-sm">
                       Proceed to Book →
                     </button>
                   </>
                 ) : (
-                  <p className="text-sm text-chalk-dim">
-                    Select time slots from the grid to start booking
-                  </p>
+                  <p className="text-sm text-chalk-dim">Select time slots from the grid to start booking</p>
                 )}
               </div>
-
-              {/* Quick info */}
               <div className="glass-panel rounded-2xl p-6 space-y-4">
                 <h3 className="text-sm font-semibold text-chalk uppercase tracking-wider">Quick Info</h3>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-chalk-dim">City</span>
-                    <span className="text-chalk">{turf.city}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-chalk-dim">Sports</span>
-                    <span className="text-chalk capitalize">{turf.sports.join(', ')}</span>
-                  </div>
-                  {turf.size && (
-                    <div className="flex justify-between">
-                      <span className="text-chalk-dim">Size</span>
-                      <span className="text-chalk font-mono">{turf.size}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between"><span className="text-chalk-dim">City</span><span className="text-chalk">{turf.city}</span></div>
+                  <div className="flex justify-between"><span className="text-chalk-dim">Sports</span><span className="text-chalk capitalize">{turf.sports.join(', ')}</span></div>
+                  {turf.size && <div className="flex justify-between"><span className="text-chalk-dim">Size</span><span className="text-chalk font-mono">{turf.size}</span></div>}
                 </div>
-
-                {/* Directions link (Google Maps) */}
                 {turf.latitude && turf.longitude && (
-                  <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${turf.latitude},${turf.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex justify-center items-center gap-2 w-full py-2.5 text-sm font-medium bg-pitch-700 border border-pitch-600 rounded-xl text-turf hover:border-turf/50 transition-colors mt-3"
-                  >
+                  <a href={`https://www.google.com/maps/dir/?api=1&destination=${turf.latitude},${turf.longitude}`} target="_blank" rel="noopener noreferrer" className="flex justify-center items-center gap-2 w-full py-2.5 text-sm font-medium bg-pitch-700 border border-pitch-600 rounded-xl text-turf hover:border-turf/50 transition-colors mt-3">
                     <Navigation className="w-4 h-4" /> Get Directions
                   </a>
                 )}

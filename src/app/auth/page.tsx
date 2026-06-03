@@ -5,10 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
-import { MOCK_USER, MOCK_OWNER } from '@/lib/mock-data';
-import { User, Building, Shield, LogIn } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { fetchProfile } from '@/lib/supabase/queries';
+import { User, Building, LogIn, AlertCircle } from 'lucide-react';
 
 type AuthMode = 'login' | 'signup';
+type SignupRole = 'user' | 'owner';
 
 export default function AuthPage() {
   return (
@@ -22,7 +24,7 @@ function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/';
-  const roleParam = searchParams.get('role');
+  const roleParam = searchParams.get('role') as SignupRole | null;
   const { setUser } = useAuthStore();
 
   const [mode, setMode] = useState<AuthMode>('login');
@@ -30,34 +32,83 @@ function AuthContent() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [signupRole, setSignupRole] = useState<SignupRole>(roleParam === 'owner' ? 'owner' : 'user');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const supabase = createClient();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
-    // Simulate auth delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      if (mode === 'signup') {
+        // Sign up
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: name || 'User',
+              role: signupRole,
+              phone: phone ? `+91${phone}` : null,
+            },
+          },
+        });
 
-    // Demo: log in as user or owner based on role param
-    if (roleParam === 'owner') {
-      setUser({ ...MOCK_OWNER, full_name: name || MOCK_OWNER.full_name, email: email || MOCK_OWNER.email });
-    } else {
-      setUser({ ...MOCK_USER, full_name: name || MOCK_USER.full_name, email: email || MOCK_USER.email });
+        if (signUpError) {
+          setError(signUpError.message);
+          setIsLoading(false);
+          return;
+        }
+
+        if (data.user) {
+          // Wait a moment for the trigger to create the profile
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          const profile = await fetchProfile(data.user.id);
+          if (profile) {
+            setUser(profile);
+            router.push(signupRole === 'owner' ? '/dashboard' : redirect);
+          } else {
+            setError('Account created! Please sign in.');
+            setMode('login');
+          }
+        }
+      } else {
+        // Sign in
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInError) {
+          setError(signInError.message);
+          setIsLoading(false);
+          return;
+        }
+
+        if (data.user) {
+          const profile = await fetchProfile(data.user.id);
+          if (profile) {
+            setUser(profile);
+            // Redirect based on role
+            if (profile.role === 'admin') {
+              router.push('/admin');
+            } else if (profile.role === 'owner') {
+              router.push('/dashboard');
+            } else {
+              router.push(redirect);
+            }
+          }
+        }
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
     }
 
     setIsLoading(false);
-    router.push(redirect);
-  };
-
-  const handleDemoLogin = (role: 'user' | 'owner' | 'admin') => {
-    const profiles = {
-      user: MOCK_USER,
-      owner: MOCK_OWNER,
-      admin: { ...MOCK_USER, id: 'admin-001', role: 'admin' as const, full_name: 'Admin User', email: 'admin@turfbook.in' },
-    };
-    setUser(profiles[role]);
-    router.push(role === 'admin' ? '/admin' : role === 'owner' ? '/dashboard' : redirect);
   };
 
   return (
@@ -95,7 +146,7 @@ function AuthContent() {
             {(['login', 'signup'] as AuthMode[]).map((m) => (
               <button
                 key={m}
-                onClick={() => setMode(m)}
+                onClick={() => { setMode(m); setError(null); }}
                 className={`flex-1 py-3.5 text-sm font-semibold transition-all relative ${
                   mode === m ? 'text-turf' : 'text-chalk-dim hover:text-chalk'
                 }`}
@@ -112,21 +163,66 @@ function AuthContent() {
           </div>
 
           <form onSubmit={handleAuth} className="p-6 space-y-4">
+            {/* Error display */}
+            <AnimatePresence mode="wait">
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-danger/10 border border-danger/30 rounded-xl p-3 flex items-start gap-2"
+                >
+                  <AlertCircle className="w-4 h-4 text-danger shrink-0 mt-0.5" />
+                  <p className="text-sm text-danger">{error}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <AnimatePresence mode="wait">
               {mode === 'signup' && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
+                  className="space-y-4"
                 >
-                  <label className="block text-xs text-chalk-dim font-medium mb-1.5">Full Name</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Your full name"
-                    className="w-full px-4 py-2.5 bg-pitch-700 border border-pitch-600 text-chalk text-sm rounded-xl placeholder-chalk-dim focus:outline-none focus:border-turf/50"
-                  />
+                  <div>
+                    <label className="block text-xs text-chalk-dim font-medium mb-1.5">Full Name</label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Your full name"
+                      required
+                      className="w-full px-4 py-2.5 bg-pitch-700 border border-pitch-600 text-chalk text-sm rounded-xl placeholder-chalk-dim focus:outline-none focus:border-turf/50"
+                    />
+                  </div>
+
+                  {/* Role selector */}
+                  <div>
+                    <label className="block text-xs text-chalk-dim font-medium mb-1.5">I am a</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        { role: 'user' as const, label: 'Player', icon: <User className="w-4 h-4" />, desc: 'Book turfs' },
+                        { role: 'owner' as const, label: 'Turf Owner', icon: <Building className="w-4 h-4" />, desc: 'List turfs' },
+                      ]).map(({ role, label, icon, desc }) => (
+                        <button
+                          key={role}
+                          type="button"
+                          onClick={() => setSignupRole(role)}
+                          className={`flex flex-col items-center gap-1 py-3 rounded-xl border transition-all ${
+                            signupRole === role
+                              ? 'bg-turf/10 border-turf/40 text-turf'
+                              : 'bg-pitch-700/50 border-pitch-600 text-chalk-dim hover:border-pitch-500'
+                          }`}
+                        >
+                          {icon}
+                          <span className="text-xs font-semibold">{label}</span>
+                          <span className="text-[10px] opacity-70">{desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -138,6 +234,7 @@ function AuthContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
+                required
                 className="w-full px-4 py-2.5 bg-pitch-700 border border-pitch-600 text-chalk text-sm rounded-xl placeholder-chalk-dim focus:outline-none focus:border-turf/50"
               />
             </div>
@@ -149,6 +246,8 @@ function AuthContent() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
+                required
+                minLength={6}
                 className="w-full px-4 py-2.5 bg-pitch-700 border border-pitch-600 text-chalk text-sm rounded-xl placeholder-chalk-dim focus:outline-none focus:border-turf/50"
               />
             </div>
@@ -193,35 +292,6 @@ function AuthContent() {
               )}
             </button>
           </form>
-        </div>
-
-        {/* Quick Demo Login */}
-        <div className="mt-8 glass-panel rounded-2xl p-6">
-          <h4 className="text-xs text-chalk-dim uppercase tracking-widest font-semibold mb-3 text-center">
-            Quick Demo Login
-          </h4>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { role: 'user' as const, label: 'Player', icon: <User className="w-4 h-4" />, color: 'turf' },
-              { role: 'owner' as const, label: 'Owner', icon: <Building className="w-4 h-4" />, color: 'amber' },
-              { role: 'admin' as const, label: 'Admin', icon: <Shield className="w-4 h-4" />, color: 'chalk' },
-            ].map(({ role, label, icon, color }) => (
-              <button
-                key={role}
-                onClick={() => handleDemoLogin(role)}
-                className={`flex flex-col items-center gap-1.5 py-3 text-xs font-medium rounded-xl border transition-all hover:-translate-y-0.5 ${
-                  color === 'turf'
-                    ? 'bg-turf/10 border-turf/30 text-turf hover:bg-turf/20'
-                    : color === 'amber'
-                    ? 'bg-amber/10 border-amber/30 text-amber hover:bg-amber/20'
-                    : 'bg-pitch-700/50 border-pitch-500/30 text-chalk hover:bg-pitch-600/50'
-                }`}
-              >
-                {icon}
-                {label}
-              </button>
-            ))}
-          </div>
         </div>
       </motion.div>
     </div>
