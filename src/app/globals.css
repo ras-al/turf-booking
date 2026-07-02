@@ -1,42 +1,46 @@
 @import "tailwindcss";
 
 /* ========================================
-   TURFBOOK — "Field at Night" Design System
+   PLAYFIELD — Unified Clean Light Design System
    ======================================== */
 
-/* --- Theme Tokens --- */
 :root {
-  /* Pitch (backgrounds) */
-  --pitch-950: #060606;
-  --pitch-900: #0a0a0a;
-  --pitch-800: #121212;
-  --pitch-700: #1a1a1a;
-  --pitch-600: #262626;
-  --pitch-500: #3a3a3a;
-  --pitch-400: #525252;
+  /* Primary Green */
+  --green-50: #f0fdf4;
+  --green-100: #dcfce7;
+  --green-200: #bbf7d0;
+  --green-300: #86efac;
+  --green-400: #4ade80;
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+  --green-700: #15803d;
+  --green-800: #166534;
+  --green-900: #14532d;
 
-  /* Turf Green (accent) */
-  --turf: #22c55e;
-  --turf-light: #4ade80;
-  --turf-dark: #16a34a;
-  --turf-muted: rgba(34, 197, 94, 0.12);
+  /* Neutrals */
+  --white: #ffffff;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
 
-  /* Amber (CTA) */
+  /* Amber/Gold */
   --amber: #f59e0b;
   --amber-light: #fbbf24;
   --amber-dark: #d97706;
-
-  /* Chalk (text) */
-  --chalk: #f5f5f0;
-  --chalk-muted: #a3a3a3;
-  --chalk-dim: #737373;
 
   /* Danger */
   --danger: #ef4444;
   --danger-dark: #dc2626;
 
   /* Fonts */
-  --font-display: 'Bebas Neue', Impact, sans-serif;
+  --font-display: 'Inter', -apple-system, sans-serif;
   --font-body: 'DM Sans', -apple-system, sans-serif;
   --font-mono: 'Roboto Mono', 'Courier New', monospace;
 
@@ -49,33 +53,20 @@
 
 /* --- Tailwind v4 Theme Registration --- */
 @theme {
-  --color-pitch-950: #060606;
-  --color-pitch-900: #0a0a0a;
-  --color-pitch-800: #121212;
-  --color-pitch-700: #1a1a1a;
-  --color-pitch-600: #262626;
-  --color-pitch-500: #3a3a3a;
-  --color-pitch-400: #525252;
-
-  --color-turf: #22c55e;
-  --color-turf-light: #4ade80;
-  --color-turf-dark: #16a34a;
-  --color-turf-muted: rgba(34, 197, 94, 0.12);
+  --color-green-600: #16a34a;
+  --color-green-500: #22c55e;
+  --color-green-50: #f0fdf4;
 
   --color-amber: #f59e0b;
   --color-amber-light: #fbbf24;
   --color-amber-dark: #d97706;
 
-  --color-chalk: #f5f5f0;
-  --color-chalk-muted: #a3a3a3;
-  --color-chalk-dim: #737373;
-
   --color-danger: #ef4444;
   --color-danger-dark: #dc2626;
 
-  --font-display: "Bebas Neue", Impact, sans-serif;
-  --font-body: "DM Sans", -apple-system, sans-serif;
-  --font-mono: "Roboto Mono", "Courier New", monospace;
+  --font-display: 'Inter', -apple-system, sans-serif;
+  --font-body: 'DM Sans', -apple-system, sans-serif;
+  --font-mono: 'Roboto Mono', 'Courier New', monospace;
 }
 
 /* --- Base Styles --- */
@@ -84,8 +75,8 @@ html {
 }
 
 body {
-  background-color: #0a0a0a;
-  color: #f5f5f0;
+  background-color: #ffffff;
+  color: #111827;
   font-family: 'DM Sans', -apple-system, sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -99,111 +90,66 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--pitch-800);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--pitch-500);
+  background: #d1d5db;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--turf);
-}
-
-/* --- Grain Texture Overlay --- */
-.grain-overlay {
-  position: relative;
-}
-
-.grain-overlay::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0.03;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 1;
+  background: #16a34a;
 }
 
 /* ========================================
-   GLASSMORPHISM & CARD SYSTEM
+   CARD SYSTEM
    ======================================== */
 
-.glass-panel {
-  background: rgba(18, 18, 18, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+.pf-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.glass-card {
-  background: rgba(18, 18, 18, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-lg);
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+.pf-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
-.glass-card:hover {
-  border-color: rgba(34, 197, 94, 0.25);
-  box-shadow:
-    0 8px 40px rgba(0, 0, 0, 0.5),
-    0 0 30px rgba(34, 197, 94, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-/* --- Glow Utilities --- */
-.glow-accent {
-  box-shadow:
-    0 0 20px rgba(34, 197, 94, 0.15),
-    0 0 60px rgba(34, 197, 94, 0.05);
-}
-
-.glow-amber {
-  box-shadow:
-    0 0 20px rgba(245, 158, 11, 0.15),
-    0 0 60px rgba(245, 158, 11, 0.05);
+.pf-card-elevated {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 /* ========================================
-   AMBIENT GLOW BACKGROUNDS
-   (These make glassmorphism actually visible)
+   BADGES
    ======================================== */
 
-.ambient-glow {
-  position: relative;
+.pf-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
 }
 
-.ambient-glow::before {
-  content: '';
-  position: absolute;
-  top: 15%;
-  left: -5%;
-  width: 40%;
-  height: 60%;
-  background: radial-gradient(ellipse, rgba(34, 197, 94, 0.08) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
+.pf-badge-amber {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
 }
 
-.ambient-glow::after {
-  content: '';
-  position: absolute;
-  bottom: 10%;
-  right: -5%;
-  width: 40%;
-  height: 60%;
-  background: radial-gradient(ellipse, rgba(245, 158, 11, 0.06) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
+.pf-badge-danger {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
 }
 
 /* ========================================
@@ -211,127 +157,97 @@ body {
    ======================================== */
 
 .slot-available {
-  background: var(--turf-muted);
-  border: 1px solid var(--turf);
-  color: var(--turf);
+  background: #f0fdf4;
+  border: 1.5px solid #bbf7d0;
+  color: #16a34a;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .slot-available:hover {
-  background: rgba(34, 197, 94, 0.25);
+  background: #dcfce7;
   transform: scale(1.02);
 }
 
 .slot-selected {
-  background: var(--amber);
-  border: 1px solid var(--amber-light);
-  color: var(--pitch-900);
+  background: #16a34a;
+  border: 1.5px solid #16a34a;
+  color: #ffffff;
   cursor: pointer;
   font-weight: 600;
 }
 
 .slot-booked {
-  background: var(--pitch-600);
-  border: 1px solid var(--pitch-500);
-  color: var(--chalk-dim);
+  background: #f3f4f6;
+  border: 1.5px solid #e5e7eb;
+  color: #9ca3af;
   cursor: not-allowed;
   opacity: 0.5;
 }
 
 .slot-blocked {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: var(--danger);
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  color: #ef4444;
   cursor: not-allowed;
   opacity: 0.5;
 }
 
 /* ========================================
-   TICKET STUB
+   GREEN BANNER
    ======================================== */
 
-.ticket-stub {
+.pf-green-banner {
+  background: linear-gradient(135deg, #16a34a 0%, #22c55e 60%, #4ade80 100%);
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
   position: relative;
-  background: var(--pitch-700);
-  border-radius: var(--radius-lg);
-  overflow: visible;
+  overflow: hidden;
 }
 
-.ticket-stub::before {
+.pf-green-banner::before {
   content: '';
   position: absolute;
-  left: 35%;
-  top: -8px;
-  bottom: -8px;
-  width: 2px;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    var(--pitch-600) 0px,
-    var(--pitch-600) 6px,
-    transparent 6px,
-    transparent 12px
-  );
-}
-
-.ticket-stub::after {
-  content: '';
-  position: absolute;
-  left: calc(35% - 7px);
-  top: -8px;
-  width: 16px;
-  height: 16px;
-  background: var(--pitch-900);
+  right: -20px;
+  bottom: -20px;
+  width: 120px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 50%;
-  box-shadow: 0 calc(100% + 0px) 0 0 var(--pitch-900);
 }
 
 /* ========================================
-   GRADIENT TEXT UTILITIES
+   SEARCH INPUT
    ======================================== */
 
-.text-gradient-turf {
-  background: linear-gradient(135deg, #22c55e, #4ade80, #86efac);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.pf-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 14px;
+  transition: border-color 0.2s;
 }
 
-.text-gradient-amber {
-  background: linear-gradient(135deg, #d97706, #f59e0b, #fbbf24);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.pf-search:focus-within {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
 }
 
-.bg-gradient-cta {
-  background: linear-gradient(135deg, var(--amber-dark), var(--amber), var(--amber-light));
+.pf-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #111827;
+  background: transparent;
 }
 
-.bg-gradient-turf {
-  background: linear-gradient(135deg, var(--turf-dark), var(--turf));
-}
-
-/* ========================================
-   ANIMATED GRADIENT HERO BACKGROUND
-   ======================================== */
-
-@keyframes gradient-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-.hero-gradient {
-  background: linear-gradient(
-    135deg,
-    #060606 0%,
-    #0a1a0e 25%,
-    #0a0a0a 50%,
-    #1a150a 75%,
-    #060606 100%
-  );
-  background-size: 400% 400%;
-  animation: gradient-shift 15s ease infinite;
+.pf-search input::placeholder {
+  color: #9ca3af;
 }
 
 /* ========================================
@@ -342,10 +258,52 @@ input:focus,
 select:focus,
 textarea:focus,
 button:focus-visible {
-  outline: 2px solid var(--turf);
+  outline: 2px solid #16a34a;
   outline-offset: 2px;
 }
 
+/* ========================================
+   BOTTOM NAV — MOBILE
+   ======================================== */
+
+.pf-bottom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: 64px;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  padding: 0 8px;
+}
+
+.pf-bottom-nav a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex: 1;
+  height: 100%;
+  color: #9ca3af;
+  text-decoration: none;
+  transition: color 0.2s;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.pf-bottom-nav a.active {
+  color: #16a34a;
+}
+
+/* ========================================
+   MOBILE SAFE AREA
+   ======================================== */
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
 
 /* ========================================
    SCROLLBAR HIDE UTILITY
@@ -358,4 +316,92 @@ button:focus-visible {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* ========================================
+   TABLE SYSTEM
+   ======================================== */
+
+.pf-table {
+  width: 100%;
+  font-size: 14px;
+}
+
+.pf-table thead {
+  background: #f9fafb;
+}
+
+.pf-table th {
+  text-align: left;
+  padding: 12px 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.pf-table td {
+  padding: 12px 20px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+}
+
+.pf-table tr:hover td {
+  background: #f9fafb;
+}
+
+/* ========================================
+   STAT CARD
+   ======================================== */
+
+.pf-stat-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
+  transition: box-shadow 0.2s;
+}
+
+.pf-stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* ========================================
+   TAB SYSTEM
+   ======================================== */
+
+.pf-tab {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.2s;
+  white-space: nowrap;
+  color: #6b7280;
+}
+
+.pf-tab:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.pf-tab-active {
+  background: #f0fdf4;
+  color: #16a34a;
+  font-weight: 600;
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out;
 }

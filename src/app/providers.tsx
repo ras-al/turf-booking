@@ -11,15 +11,14 @@ function AuthInitializer({ children }: { children: ReactNode }) {
     initialize();
   }, [initialize]);
 
-  // Show nothing while checking auth (prevents flash of unauthenticated content)
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-pitch-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-turf flex items-center justify-center text-pitch-900 font-bold text-lg font-display animate-pulse">
-            T
+          <div className="w-10 h-10 rounded-full border-2 border-green-600 flex items-center justify-center bg-green-50 animate-pulse">
+            <span className="text-green-700 font-bold text-lg">P</span>
           </div>
-          <p className="text-xs text-chalk-dim">Loading...</p>
+          <p className="text-xs text-gray-400">Loading...</p>
         </div>
       </div>
     );
@@ -34,7 +33,7 @@ export function Providers({ children }: { children: ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000, // 1 minute
+            staleTime: 60 * 1000,
             refetchOnWindowFocus: false,
           },
         },

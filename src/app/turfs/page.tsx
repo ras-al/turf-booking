@@ -8,54 +8,85 @@ import { fetchTurfs } from '@/lib/supabase/queries';
 import { formatCurrency, SPORT_ICONS, ALL_SPORTS, getRoadDistance, formatDistance } from '@/lib/utils';
 import { useFilterStore } from '@/stores/filter-store';
 import type { Turf } from '@/types';
-import { MapPin, Star, Search } from 'lucide-react';
+import { MapPin, Star, Search, SlidersHorizontal, X } from 'lucide-react';
 
-function TurfListCard({ turf }: { turf: Turf }) {
+function TurfCard({ turf }: { turf: Turf }) {
+  return (
+    <Link href={`/turfs/${turf.id}`} className="flex items-start gap-3 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors">
+      <div className="w-[72px] h-[72px] rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
+        {turf.photos && turf.photos.length > 0 ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={turf.photos[0]} alt={turf.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-8 h-8 opacity-30">{SPORT_ICONS[turf.sports[0]] || <MapPin className="w-8 h-8 text-gray-300" />}</div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="text-sm font-bold text-gray-900 truncate">{turf.name}</h3>
+        <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+          <MapPin className="w-3 h-3 text-green-600 shrink-0" />
+          <span className="truncate">{turf.address}</span>
+        </p>
+        <div className="flex items-center gap-2 mt-1.5">
+          <div className="flex items-center gap-1">
+            <Star className="w-3 h-3 text-amber fill-amber" />
+            <span className="text-xs font-bold text-gray-700">{turf.avg_rating}</span>
+            <span className="text-xs text-gray-400">({turf.total_reviews})</span>
+          </div>
+          {turf.distance !== undefined && (
+            <span className="text-xs text-gray-400 flex items-center gap-0.5">
+              <MapPin className="w-2.5 h-2.5" /> {formatDistance(turf.distance)}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="text-right flex-shrink-0 pt-1">
+        <span className="text-sm font-bold text-green-600">{formatCurrency(turf.price_per_hour)}</span>
+        <span className="text-[10px] text-gray-400 block">/hr</span>
+      </div>
+    </Link>
+  );
+}
+
+function DesktopTurfCard({ turf }: { turf: Turf }) {
   return (
     <motion.div layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} whileHover={{ y: -3 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }}>
-      <Link href={`/turfs/${turf.id}`} className="block glass-card overflow-hidden hover:border-turf/30 transition-all group hover:glow-accent">
-        <div className="h-40 bg-gradient-to-br from-pitch-700/80 to-pitch-800/80 relative overflow-hidden grain-overlay">
+      <Link href={`/turfs/${turf.id}`} className="block pf-card overflow-hidden group">
+        <div className="h-40 bg-gray-100 relative overflow-hidden">
           {turf.photos && turf.photos.length > 0 ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={turf.photos[0]} alt={turf.name} className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-60 group-hover:scale-105 transition-transform duration-500" />
+            <img src={turf.photos[0]} alt={turf.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center group-hover:scale-110 transition-all duration-500">
+            <div className="absolute inset-0 flex items-center justify-center">
               {SPORT_ICONS[turf.sports[0]] ? (
-                <div className="w-16 h-16 [&>svg]:w-full [&>svg]:h-full opacity-30 text-pitch-500 group-hover:text-turf/20">{SPORT_ICONS[turf.sports[0]]}</div>
-              ) : (
-                <MapPin className="w-16 h-16 opacity-30 text-pitch-500 group-hover:text-turf/20" />
-              )}
+                <div className="w-16 h-16 [&>svg]:w-full [&>svg]:h-full opacity-20 text-gray-400">{SPORT_ICONS[turf.sports[0]]}</div>
+              ) : (<MapPin className="w-16 h-16 opacity-20 text-gray-400" />)}
             </div>
           )}
           <div className="absolute top-3 left-3 flex gap-1.5 z-10">
             {turf.sports.slice(0, 2).map((sport) => (
-              <span key={sport} className="px-2 py-1 text-xs font-semibold bg-pitch-900/60 border border-turf/20 text-turf rounded-md backdrop-blur-md capitalize flex items-center gap-1">
-                <div className="w-3 h-3 [&>svg]:w-full [&>svg]:h-full">{SPORT_ICONS[sport]}</div>
-                {sport}
+              <span key={sport} className="px-2 py-1 text-xs font-semibold bg-white/90 text-green-700 rounded-md backdrop-blur-md capitalize flex items-center gap-1 shadow-sm">
+                <div className="w-3 h-3 [&>svg]:w-full [&>svg]:h-full">{SPORT_ICONS[sport]}</div>{sport}
               </span>
             ))}
           </div>
-          {turf.size && <span className="absolute top-3 right-3 px-2 py-1 text-xs font-mono font-bold bg-amber/90 text-pitch-900 rounded-md z-10 shadow-lg">{turf.size}</span>}
+          {turf.size && <span className="absolute top-3 right-3 px-2 py-1 text-xs font-mono font-bold bg-amber text-white rounded-md z-10 shadow-sm">{turf.size}</span>}
           {turf.distance !== undefined && (
-            <span className="absolute bottom-3 right-3 px-2 py-1 flex items-center gap-1 text-xs font-mono bg-pitch-900/60 text-chalk-muted rounded-md backdrop-blur-md border border-chalk/10 z-10">
-              <MapPin className="w-3 h-3 text-turf" /> {formatDistance(turf.distance)}
+            <span className="absolute bottom-3 right-3 px-2 py-1 flex items-center gap-1 text-xs font-mono bg-white/90 text-gray-700 rounded-md backdrop-blur-md shadow-sm z-10">
+              <MapPin className="w-3 h-3 text-green-600" /> {formatDistance(turf.distance)}
             </span>
           )}
         </div>
         <div className="p-5">
-          <h3 className="text-lg font-display tracking-wide text-chalk group-hover:text-turf transition-colors">{turf.name}</h3>
-          <p className="text-sm text-chalk-dim mt-1 flex items-center gap-1.5 truncate"><MapPin className="w-3.5 h-3.5 shrink-0" />{turf.address}</p>
+          <h3 className="text-base font-bold text-gray-900 group-hover:text-green-600 transition-colors">{turf.name}</h3>
+          <p className="text-sm text-gray-500 mt-1 flex items-center gap-1.5 truncate"><MapPin className="w-3.5 h-3.5 shrink-0 text-green-600" />{turf.address}</p>
           <div className="mt-3 flex items-center justify-between">
-            <span className="text-lg font-mono font-bold text-turf">{formatCurrency(turf.price_per_hour)}<span className="text-xs text-chalk-dim font-body">/hr</span></span>
-            <div className="flex items-center gap-1.5 bg-pitch-900/50 px-2 py-1 rounded-md border border-pitch-700">
+            <span className="text-lg font-bold text-green-600">{formatCurrency(turf.price_per_hour)}<span className="text-xs text-gray-400 font-normal">/hr</span></span>
+            <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-md border border-gray-200">
               <Star className="w-3.5 h-3.5 text-amber fill-amber" />
-              <span className="text-sm font-mono font-bold text-chalk">{turf.avg_rating}</span>
-              <span className="text-xs text-chalk-dim">({turf.total_reviews})</span>
+              <span className="text-sm font-bold text-gray-800">{turf.avg_rating}</span>
+              <span className="text-xs text-gray-400">({turf.total_reviews})</span>
             </div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {turf.amenities.slice(0, 4).map((a) => <span key={a} className="px-2 py-0.5 text-xs bg-pitch-700 text-chalk-dim rounded-md capitalize">{a}</span>)}
-            {turf.amenities.length > 4 && <span className="px-2 py-0.5 text-xs bg-pitch-700 text-chalk-dim rounded-md">+{turf.amenities.length - 4}</span>}
           </div>
         </div>
       </Link>
@@ -65,7 +96,7 @@ function TurfListCard({ turf }: { turf: Turf }) {
 
 export default function TurfsPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-pitch-900" />}>
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
       <TurfsContent />
     </Suspense>
   );
@@ -80,12 +111,10 @@ function TurfsContent() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Fetch turfs from Supabase
   useEffect(() => {
     fetchTurfs().then((data) => { setAllTurfs(data); setTurfsWithDistance(data); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
-  // Pick up URL search params
   useEffect(() => {
     const sport = searchParams.get('sport');
     const search = searchParams.get('search');
@@ -93,7 +122,6 @@ function TurfsContent() {
     if (search) setFilter('search', search);
   }, [searchParams, setFilter]);
 
-  // Get user location
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -103,7 +131,6 @@ function TurfsContent() {
     }
   }, []);
 
-  // Calculate road distances
   useEffect(() => {
     if (!userLocation) { setTurfsWithDistance(allTurfs); return; }
     async function calcDistances() {
@@ -119,7 +146,6 @@ function TurfsContent() {
     calcDistances();
   }, [userLocation, allTurfs]);
 
-  // Apply filters
   const filteredTurfs = useMemo(() => {
     let result = [...turfsWithDistance];
     if (filters.search) {
@@ -144,97 +170,106 @@ function TurfsContent() {
   const activeFilterCount = [filters.sport, filters.minPrice, filters.maxPrice, filters.size, filters.minRating].filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-pitch-900">
-      <div className="bg-pitch-950 border-b border-pitch-600/30">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-display tracking-wider text-chalk">FIND YOUR <span className="text-turf">TURF</span></h1>
-              <p className="text-sm text-chalk-dim mt-1">{loading ? 'Loading...' : `${filteredTurfs.length} turf${filteredTurfs.length !== 1 ? 's' : ''} available`}{userLocation && ' · Distance from your location'}</p>
+    <div className="min-h-screen bg-white">
+      {/* ═══════════════════════════════════════
+          MOBILE VIEW
+          ═══════════════════════════════════════ */}
+      <div className="md:hidden pt-14">
+        {/* Search + Filter Header */}
+        <div className="px-4 pt-2 pb-3 border-b border-gray-100">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex-1 flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5">
+              <Search className="w-4 h-4 text-gray-400 shrink-0" />
+              <input type="text" placeholder="Search turfs, cities..." value={filters.search || ''} onChange={(e) => setFilter('search', e.target.value || undefined)} className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none" />
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setIsFilterOpen(!isFilterOpen)} className={`px-4 py-2 text-xs font-medium rounded-lg border transition-all flex items-center gap-1.5 ${isFilterOpen ? 'bg-turf/10 border-turf/30 text-turf' : 'bg-pitch-800 border-pitch-600/50 text-chalk-muted hover:text-chalk'}`}>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-                Filters
-                {activeFilterCount > 0 && <span className="w-5 h-5 rounded-full bg-turf text-pitch-900 text-xs font-bold flex items-center justify-center">{activeFilterCount}</span>}
-              </button>
-            </div>
+            <button onClick={() => setIsFilterOpen(!isFilterOpen)} className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all relative ${isFilterOpen ? 'bg-green-50 border-green-300 text-green-600' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
+              <SlidersHorizontal className="w-4 h-4" />
+              {activeFilterCount > 0 && (<span className="absolute -top-1 -right-1 w-4 h-4 bg-green-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{activeFilterCount}</span>)}
+            </button>
           </div>
-          <div className="mt-4">
-            <div className="relative max-w-md">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-chalk-dim" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-              <input type="text" placeholder="Search turfs, cities, sports..." value={filters.search || ''} onChange={(e) => setFilter('search', e.target.value || undefined)} className="w-full pl-9 pr-4 py-2.5 bg-pitch-800 border border-pitch-600/50 text-chalk text-sm rounded-lg placeholder-chalk-dim focus:outline-none focus:border-turf/50" />
-            </div>
-          </div>
+          <p className="text-xs text-gray-400">{loading ? 'Loading...' : `${filteredTurfs.length} turf${filteredTurfs.length !== 1 ? 's' : ''} found`}</p>
+        </div>
+
+        <AnimatePresence>
+          {isFilterOpen && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="bg-gray-50 border-b border-gray-200 overflow-hidden">
+              <div className="px-4 py-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-gray-900">Filters</h3>
+                  <button onClick={resetFilters} className="text-xs font-medium text-red-500">Reset</button>
+                </div>
+                <div><label className="text-xs text-gray-500 font-medium mb-1.5 block">Sport</label><select value={filters.sport || ''} onChange={(e) => setFilter('sport', e.target.value || undefined)} className="w-full px-3 py-2.5 bg-white border border-gray-200 text-gray-900 text-sm rounded-xl outline-none capitalize"><option value="">All Sports</option>{ALL_SPORTS.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}</select></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-xs text-gray-500 font-medium mb-1.5 block">Min Rating</label><select value={filters.minRating || ''} onChange={(e) => setFilter('minRating', e.target.value ? Number(e.target.value) : undefined)} className="w-full px-3 py-2.5 bg-white border border-gray-200 text-gray-900 text-sm rounded-xl outline-none"><option value="">Any</option><option value="3">3+ Stars</option><option value="4">4+ Stars</option><option value="4.5">4.5+ Stars</option></select></div>
+                  <div><label className="text-xs text-gray-500 font-medium mb-1.5 block">Sort By</label><select value={filters.sortBy || 'newest'} onChange={(e) => setFilter('sortBy', e.target.value as typeof filters.sortBy)} className="w-full px-3 py-2.5 bg-white border border-gray-200 text-gray-900 text-sm rounded-xl outline-none"><option value="newest">Newest</option><option value="price_asc">Price: Low</option><option value="price_desc">Price: High</option><option value="rating">Rating</option><option value="distance">Nearest</option></select></div>
+                </div>
+                <button onClick={() => setIsFilterOpen(false)} className="w-full py-2.5 bg-green-600 text-white text-sm font-bold rounded-xl">Apply Filters</button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="px-4 py-2 pb-[84px]">
+          {loading ? (
+            <div className="space-y-3 py-4">{[1,2,3,4].map(i => (<div key={i} className="flex gap-3 animate-pulse"><div className="w-[72px] h-[72px] rounded-xl bg-gray-100" /><div className="flex-1 space-y-2 py-1"><div className="h-4 bg-gray-100 rounded w-3/4" /><div className="h-3 bg-gray-50 rounded w-1/2" /><div className="h-3 bg-gray-50 rounded w-1/4" /></div></div>))}</div>
+          ) : filteredTurfs.length === 0 ? (
+            <div className="text-center py-16"><Search className="w-12 h-12 text-gray-200 mx-auto mb-4" /><h3 className="text-base font-bold text-gray-900">No turfs found</h3><p className="text-sm text-gray-400 mt-1">Try adjusting your filters</p><button onClick={resetFilters} className="mt-3 px-5 py-2 text-sm bg-green-600 text-white rounded-lg font-medium">Reset Filters</button></div>
+          ) : (
+            <div>{filteredTurfs.map((turf) => <TurfCard key={turf.id} turf={turf} />)}</div>
+          )}
         </div>
       </div>
 
-      <AnimatePresence>
-        {isFilterOpen && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="bg-pitch-800 border-b border-pitch-600/30 overflow-hidden">
-            <div className="max-w-7xl mx-auto px-4 py-5">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                <div>
-                  <label className="text-xs text-chalk-dim font-medium mb-1.5 block">Sport</label>
-                  <select value={filters.sport || ''} onChange={(e) => setFilter('sport', e.target.value || undefined)} className="w-full px-3 py-2 bg-pitch-700 border border-pitch-600 text-chalk text-sm rounded-lg focus:outline-none focus:border-turf/50 capitalize">
-                    <option value="">All Sports</option>
-                    {ALL_SPORTS.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-chalk-dim font-medium mb-1.5 block">Size</label>
-                  <select value={filters.size || ''} onChange={(e) => setFilter('size', e.target.value || undefined)} className="w-full px-3 py-2 bg-pitch-700 border border-pitch-600 text-chalk text-sm rounded-lg focus:outline-none focus:border-turf/50">
-                    <option value="">Any Size</option>
-                    <option value="5v5">5v5</option>
-                    <option value="7v7">7v7</option>
-                    <option value="11v11">11v11</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-chalk-dim font-medium mb-1.5 block">Min Rating</label>
-                  <select value={filters.minRating || ''} onChange={(e) => setFilter('minRating', e.target.value ? Number(e.target.value) : undefined)} className="w-full px-3 py-2 bg-pitch-700 border border-pitch-600 text-chalk text-sm rounded-lg focus:outline-none focus:border-turf/50">
-                    <option value="">Any</option>
-                    <option value="3">3+ Stars</option>
-                    <option value="4">4+ Stars</option>
-                    <option value="4.5">4.5+ Stars</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-chalk-dim font-medium mb-1.5 block">Sort By</label>
-                  <select value={filters.sortBy || 'newest'} onChange={(e) => setFilter('sortBy', e.target.value as typeof filters.sortBy)} className="w-full px-3 py-2 bg-pitch-700 border border-pitch-600 text-chalk text-sm rounded-lg focus:outline-none focus:border-turf/50">
-                    <option value="newest">Newest</option>
-                    <option value="price_asc">Price: Low → High</option>
-                    <option value="price_desc">Price: High → Low</option>
-                    <option value="rating">Highest Rated</option>
-                    <option value="distance">Nearest First</option>
-                  </select>
-                </div>
-                <div className="flex items-end">
-                  <button onClick={resetFilters} className="w-full px-3 py-2 text-sm text-danger border border-danger/30 rounded-lg hover:bg-danger/10 transition-colors">Clear All</button>
-                </div>
+      {/* ═══════════════════════════════════════
+          DESKTOP VIEW — Unified Light Theme
+          ═══════════════════════════════════════ */}
+      <div className="hidden md:block min-h-screen">
+        <div className="border-b border-gray-200 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-extrabold text-gray-900">Find Your Turf</h1>
+                <p className="text-sm text-gray-500 mt-1">{loading ? 'Loading...' : `${filteredTurfs.length} turf${filteredTurfs.length !== 1 ? 's' : ''} available`}{userLocation && ' · Distance from your location'}</p>
+              </div>
+              <button onClick={() => setIsFilterOpen(!isFilterOpen)} className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all flex items-center gap-1.5 ${isFilterOpen ? 'bg-green-50 border-green-300 text-green-600' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                <SlidersHorizontal className="w-4 h-4" /> Filters
+                {activeFilterCount > 0 && <span className="w-5 h-5 rounded-full bg-green-600 text-white text-xs font-bold flex items-center justify-center">{activeFilterCount}</span>}
+              </button>
+            </div>
+            <div className="mt-4 max-w-md">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input type="text" placeholder="Search turfs, cities, sports..." value={filters.search || ''} onChange={(e) => setFilter('search', e.target.value || undefined)} className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 text-gray-900 text-sm rounded-lg placeholder-gray-400 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1,2,3,4,5,6].map(i => <div key={i} className="h-72 bg-pitch-800/50 rounded-2xl animate-pulse" />)}
-          </div>
-        ) : filteredTurfs.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="flex justify-center mb-6"><Search className="w-16 h-16 text-chalk-dim/50" /></div>
-            <h3 className="text-xl font-display text-chalk">NO TURFS FOUND</h3>
-            <p className="text-sm text-chalk-dim mt-2">Try adjusting your filters or search query</p>
-            <button onClick={resetFilters} className="mt-4 px-5 py-2 text-sm bg-turf text-pitch-900 rounded-lg font-medium hover:bg-turf-light transition-colors">Reset Filters</button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTurfs.map((turf) => <TurfListCard key={turf.id} turf={turf} />)}
-          </div>
-        )}
+        <AnimatePresence>
+          {isFilterOpen && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="bg-white border-b border-gray-200 overflow-hidden">
+              <div className="max-w-7xl mx-auto px-4 py-5">
+                <div className="grid grid-cols-5 gap-4">
+                  <div><label className="text-xs text-gray-500 font-medium mb-1.5 block">Sport</label><select value={filters.sport || ''} onChange={(e) => setFilter('sport', e.target.value || undefined)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg capitalize"><option value="">All Sports</option>{ALL_SPORTS.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}</select></div>
+                  <div><label className="text-xs text-gray-500 font-medium mb-1.5 block">Size</label><select value={filters.size || ''} onChange={(e) => setFilter('size', e.target.value || undefined)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg"><option value="">Any Size</option><option value="5v5">5v5</option><option value="7v7">7v7</option><option value="11v11">11v11</option></select></div>
+                  <div><label className="text-xs text-gray-500 font-medium mb-1.5 block">Min Rating</label><select value={filters.minRating || ''} onChange={(e) => setFilter('minRating', e.target.value ? Number(e.target.value) : undefined)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg"><option value="">Any</option><option value="3">3+ Stars</option><option value="4">4+ Stars</option><option value="4.5">4.5+ Stars</option></select></div>
+                  <div><label className="text-xs text-gray-500 font-medium mb-1.5 block">Sort By</label><select value={filters.sortBy || 'newest'} onChange={(e) => setFilter('sortBy', e.target.value as typeof filters.sortBy)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg"><option value="newest">Newest</option><option value="price_asc">Price: Low to High</option><option value="price_desc">Price: High to Low</option><option value="rating">Highest Rated</option><option value="distance">Nearest First</option></select></div>
+                  <div className="flex items-end"><button onClick={resetFilters} className="w-full px-3 py-2 text-sm text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors font-medium">Clear All</button></div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          {loading ? (
+            <div className="grid grid-cols-3 gap-6">{[1,2,3,4,5,6].map(i => <div key={i} className="h-72 bg-gray-100 rounded-2xl animate-pulse" />)}</div>
+          ) : filteredTurfs.length === 0 ? (
+            <div className="text-center py-20"><Search className="w-16 h-16 text-gray-200 mx-auto mb-6" /><h3 className="text-xl font-bold text-gray-900">No turfs found</h3><p className="text-sm text-gray-500 mt-2">Try adjusting your filters or search query</p><button onClick={resetFilters} className="mt-4 px-5 py-2 text-sm bg-green-600 text-white rounded-lg font-bold">Reset Filters</button></div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">{filteredTurfs.map((turf) => <DesktopTurfCard key={turf.id} turf={turf} />)}</div>
+          )}
+        </div>
       </div>
     </div>
   );
