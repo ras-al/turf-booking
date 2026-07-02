@@ -2,7 +2,7 @@
 // All database operations go through this module
 
 import { createClient } from './client';
-import type { Turf, Slot, Booking, Review, Profile } from '@/types';
+import type { Turf, Slot, Booking, Review, Profile, Payment } from '@/types';
 
 const supabase = createClient();
 
@@ -103,7 +103,7 @@ export async function createTurf(turf: {
       size: turf.size || null,
       price_per_hour: turf.price_per_hour,
       is_active: true,
-      is_approved: false, // Admin must approve
+      is_approved: false,
     })
     .select()
     .single();
@@ -149,25 +149,65 @@ export async function fetchTodaySlots(turfId: string): Promise<Slot[]> {
 export async function markSlotsBooked(slotIds: string[]): Promise<void> {
   const { error } = await supabase
     .from('slots')
-    .update({ status: 'booked' })
+    .update({ status: 'booked', held_until: null, held_by: null })
     .in('id', slotIds);
 
   if (error) throw error;
+}
+
+/**
+ * Optimistically hold slots for a user during checkout (10 min hold).
+ * Returns false if any slot is already taken by someone else.
+ */
+export async function holdSlots(slotIds: string[], userId: string): Promise<boolean> {
+  const heldUntil = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  const now = new Date().toISOString();
+
+  const { data: slots } = await supabase
+    .from('slots')
+    .select('id, status, held_until, held_by')
+    .in('id', slotIds);
+
+  if (!slots) return false;
+
+  const unavailable = slots.filter((s) => {
+    if (s.status === 'booked' || s.status === 'blocked') return true;
+    if (s.held_by && s.held_by !== userId && s.held_until && s.held_until > now) return true;
+    return false;
+  });
+
+  if (unavailable.length > 0) return false;
+
+  const { error } = await supabase
+    .from('slots')
+    .update({ held_until: heldUntil, held_by: userId })
+    .in('id', slotIds);
+
+  return !error;
+}
+
+/** Release held slots for a user */
+export async function releaseHeldSlots(slotIds: string[], userId: string): Promise<void> {
+  await supabase
+    .from('slots')
+    .update({ held_until: null, held_by: null })
+    .in('id', slotIds)
+    .eq('held_by', userId);
 }
 
 // ═══════════════════════════════════════
 // BOOKINGS
 // ═══════════════════════════════════════
 
-/** Create a new booking (free — no payment) */
+/** Create a new booking */
 export async function createBooking(booking: {
   user_id: string;
   turf_id: string;
   slot_ids: string[];
   total_amount: number;
   notes?: string;
+  payment_status?: 'free' | 'unpaid' | 'paid' | 'refunded';
 }): Promise<Booking> {
-  // 1. Create the booking
   const { data, error } = await supabase
     .from('bookings')
     .insert({
@@ -176,7 +216,7 @@ export async function createBooking(booking: {
       slot_ids: booking.slot_ids,
       total_amount: booking.total_amount,
       status: 'confirmed',
-      payment_status: 'free',
+      payment_status: booking.payment_status || 'free',
       notes: booking.notes || null,
     })
     .select()
@@ -184,7 +224,7 @@ export async function createBooking(booking: {
 
   if (error) throw error;
 
-  // 2. Mark slots as booked
+  // Mark slots as booked
   await markSlotsBooked(booking.slot_ids);
 
   return data;
@@ -204,7 +244,6 @@ export async function fetchUserBookings(userId: string): Promise<Booking[]> {
 
 /** Fetch bookings for an owner's turfs */
 export async function fetchOwnerBookings(ownerId: string): Promise<Booking[]> {
-  // First get the owner's turf IDs
   const { data: turfs } = await supabase
     .from('turfs')
     .select('id')
@@ -232,6 +271,93 @@ export async function fetchAllBookings(): Promise<Booking[]> {
 
   if (error) throw error;
   return data || [];
+}
+
+// ═══════════════════════════════════════
+// FAVORITES
+// ═══════════════════════════════════════
+
+/** Fetch all favorited turfs for a user */
+export async function fetchUserFavorites(userId: string): Promise<Turf[]> {
+  const { data, error } = await supabase
+    .from('favorites')
+    .select('turf:turfs(*)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return ((data || []) as unknown as Array<{ turf: Turf }>).map((row) => row.turf).filter(Boolean);
+
+}
+
+/** Check if a turf is favorited by a user */
+export async function isFavorite(userId: string, turfId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('favorites')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('turf_id', turfId)
+    .maybeSingle();
+
+  return !!data;
+}
+
+/** Toggle favorite — returns new state (true = now favorited) */
+export async function toggleFavorite(userId: string, turfId: string): Promise<boolean> {
+  const existing = await isFavorite(userId, turfId);
+
+  if (existing) {
+    await supabase.from('favorites').delete().eq('user_id', userId).eq('turf_id', turfId);
+    return false;
+  } else {
+    await supabase.from('favorites').insert({ user_id: userId, turf_id: turfId });
+    return true;
+  }
+}
+
+// ═══════════════════════════════════════
+// PAYMENTS
+// ═══════════════════════════════════════
+
+/** Create a payment record */
+export async function createPayment(payment: {
+  booking_id: string;
+  amount: number;
+  method?: string;
+  razorpay_order_id?: string;
+  razorpay_payment_id?: string;
+  razorpay_signature?: string;
+  status?: 'created' | 'captured' | 'failed' | 'refunded';
+}): Promise<Payment> {
+  const { data, error } = await supabase
+    .from('payments')
+    .insert({
+      booking_id: payment.booking_id,
+      amount: payment.amount,
+      method: payment.method || null,
+      razorpay_order_id: payment.razorpay_order_id || null,
+      razorpay_payment_id: payment.razorpay_payment_id || null,
+      razorpay_signature: payment.razorpay_signature || null,
+      status: payment.status || 'created',
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/** Update booking payment status */
+export async function updateBookingPaymentStatus(
+  bookingId: string,
+  paymentStatus: 'paid' | 'refunded' | 'unpaid'
+): Promise<void> {
+  const { error } = await supabase
+    .from('bookings')
+    .update({ payment_status: paymentStatus })
+    .eq('id', bookingId);
+
+  if (error) throw error;
 }
 
 // ═══════════════════════════════════════

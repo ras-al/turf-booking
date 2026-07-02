@@ -69,9 +69,24 @@
   --font-mono: 'Roboto Mono', 'Courier New', monospace;
 }
 
+/* --- Dark Mode Overrides --- */
+.dark body {
+  background-color: #111827;
+  color: #f9fafb;
+}
+.dark .bg-white { background-color: #111827 !important; }
+.dark .bg-gray-50 { background-color: #1f2937 !important; }
+.dark .bg-gray-100 { background-color: #374151 !important; }
+.dark .text-gray-900 { color: #f9fafb !important; }
+.dark .text-gray-800 { color: #e5e7eb !important; }
+.dark .text-gray-700 { color: #d1d5db !important; }
+.dark .text-gray-600 { color: #9ca3af !important; }
+.dark .text-gray-500 { color: #9ca3af !important; }
+.dark .border-gray-100, .dark .border-gray-200 { border-color: #374151 !important; }
+.dark .pf-card { background: #1f2937 !important; border-color: #374151 !important; }
+
 /* --- Base Styles --- */
 html {
-  scroll-behavior: smooth;
 }
 
 body {

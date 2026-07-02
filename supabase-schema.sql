@@ -273,3 +273,56 @@ CREATE TRIGGER set_updated_at BEFORE UPDATE ON turfs FOR EACH ROW EXECUTE FUNCTI
 
 DROP TRIGGER IF EXISTS set_updated_at ON bookings;
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON bookings FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+-- ═══════════════════════════════════════
+-- 9. FAVORITES TABLE
+-- ═══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS favorites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  turf_id UUID NOT NULL REFERENCES turfs(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, turf_id)
+);
+
+ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage own favorites"
+  ON favorites FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- ═══════════════════════════════════════
+-- 10. PAYMENTS TABLE
+-- ═══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+  amount INTEGER NOT NULL,
+  method TEXT,
+  razorpay_order_id TEXT,
+  razorpay_payment_id TEXT,
+  razorpay_signature TEXT,
+  status TEXT NOT NULL DEFAULT 'created' CHECK (status IN ('created', 'captured', 'failed', 'refunded')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own payments"
+  ON payments FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM bookings WHERE bookings.id = booking_id AND bookings.user_id = auth.uid())
+  );
+
+CREATE POLICY "Authenticated users can create payments"
+  ON payments FOR INSERT
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM bookings WHERE bookings.id = booking_id AND bookings.user_id = auth.uid())
+  );
+
+-- ═══════════════════════════════════════
+-- 11. SLOT LOCKING (optimistic hold during checkout)
+-- ═══════════════════════════════════════
+ALTER TABLE slots ADD COLUMN IF NOT EXISTS held_until TIMESTAMPTZ;
+ALTER TABLE slots ADD COLUMN IF NOT EXISTS held_by UUID REFERENCES profiles(id);

@@ -2,13 +2,61 @@
 
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
-import { Home, Search, Calendar, User, LogIn, LogOut, LayoutDashboard, Shield, Heart, Bell, MapPin } from 'lucide-react';
+import { useFilterStore } from '@/stores/filter-store';
+import { Home, Search, Calendar, User, LogIn, LogOut, LayoutDashboard, Shield, Heart, Bell, MapPin, X, Crosshair, Loader2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
+  const { filters, setFilter } = useFilterStore();
   const pathname = usePathname();
   const router = useRouter();
+  
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [tempCity, setTempCity] = useState('');
+  const [isLocating, setIsLocating] = useState(false);
+
+  const currentCity = filters.city || 'Mumbai, India';
+
+  // Auto-detect location on first visit
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !filters.city && !sessionStorage.getItem('pf_location_checked')) {
+      sessionStorage.setItem('pf_location_checked', 'true');
+      handleGetLocation();
+    }
+  }, [filters.city]);
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await res.json();
+          // Extract city or town
+          const city = data.address.city || data.address.town || data.address.state_district || data.address.state || 'Unknown Location';
+          setFilter('city', city);
+          setTempCity(city);
+          setShowLocationModal(false);
+        } catch (error) {
+          console.warn("Error fetching location details", error);
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      (error) => {
+        console.warn("Geolocation skipped or failed (HTTPS required)", error.message);
+        setIsLocating(false);
+      }
+    );
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -155,10 +203,13 @@ export default function Navbar() {
           MOBILE — Top Header (ui.png style)
           ═══════════════════════════════════════ */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 flex items-center justify-between px-4 bg-white">
-        <div className="flex items-center gap-1.5 cursor-pointer" onClick={() => alert('Location selection coming soon!')}>
+        <div 
+          className="flex items-center gap-1.5 cursor-pointer" 
+          onClick={() => { setTempCity(filters.city || ''); setShowLocationModal(true); }}
+        >
           <MapPin className="w-5 h-5 text-gray-900" />
-          <span className="text-base font-bold text-gray-900">Mumbai, India</span>
-          <svg className="w-4 h-4 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <span className="text-base font-bold text-gray-900 truncate max-w-[160px]">{currentCity}</span>
+          <svg className="w-4 h-4 text-gray-900 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
@@ -191,6 +242,71 @@ export default function Navbar() {
           })}
         </div>
       </nav>
+
+      {/* ═══════════════════════════════════════
+          Location Selection Modal
+          ═══════════════════════════════════════ */}
+      <AnimatePresence>
+        {showLocationModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              exit={{ opacity: 0, scale: 0.95 }} 
+              className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
+            >
+              <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 className="font-bold text-gray-900 text-lg">Select Location</h3>
+                <button 
+                  onClick={() => setShowLocationModal(false)}
+                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center active:scale-95"
+                >
+                  <X className="w-4 h-4 text-gray-600" />
+                </button>
+              </div>
+              <div className="p-5 space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">City</label>
+                  <input 
+                    type="text" 
+                    placeholder="E.g. Mumbai, Delhi..." 
+                    value={tempCity} 
+                    onChange={e => setTempCity(e.target.value)} 
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        setFilter('city', tempCity.trim() || undefined);
+                        setShowLocationModal(false);
+                      }
+                    }}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-green-400"
+                  autoFocus
+                />
+                </div>
+                
+                <button 
+                  onClick={handleGetLocation}
+                  disabled={isLocating}
+                  className="mt-3 flex items-center gap-2 text-sm font-semibold text-green-600 hover:text-green-700 disabled:opacity-50"
+                >
+                  {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crosshair className="w-4 h-4" />}
+                  {isLocating ? 'Detecting...' : 'Use Current Location'}
+                </button>
+              </div>
+              <div className="px-5 pb-5">
+                <button 
+                  onClick={() => { 
+                    setFilter('city', tempCity.trim() || undefined); 
+                    setShowLocationModal(false); 
+                  }} 
+                  className="w-full py-3.5 bg-green-600 text-white font-bold rounded-xl shadow-sm active:scale-[0.98] transition-transform"
+                >
+                  Save Location
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

@@ -140,7 +140,7 @@ export default function AdminPage() {
               <table className="pf-table">
                 <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
                 <tbody>
-                  {allUsers.filter(u => !searchQuery || u.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase())).map((u) => (
+                  {allUsers.filter(u => !searchQuery || u.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || (u.email || '').toLowerCase().includes(searchQuery.toLowerCase())).map((u) => (
                     <tr key={u.id}>
                       <td>
                         <div className="flex items-center gap-2">

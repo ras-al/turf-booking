@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, useEffect, type ReactNode } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
+import { ThemeProvider } from 'next-themes';
 
 function AuthInitializer({ children }: { children: ReactNode }) {
   const { initialize, isLoading } = useAuthStore();
@@ -42,9 +43,11 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthInitializer>
-        {children}
-      </AuthInitializer>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+        <AuthInitializer>
+          {children}
+        </AuthInitializer>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

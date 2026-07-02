@@ -98,7 +98,7 @@ export default function BookingHistoryPage() {
       {/* ═══════════════════════════════════════
           MOBILE VIEW — My Bookings (ui.png style)
           ═══════════════════════════════════════ */}
-      <div className="md:hidden bg-white min-h-screen pt-16 pb-[84px]">
+      <div className="md:hidden bg-white min-h-screen">
         {/* Header */}
         <div className="px-4 pb-3">
           <h1 className="text-xl font-bold text-gray-900">My Bookings</h1>

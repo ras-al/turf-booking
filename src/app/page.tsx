@@ -8,16 +8,19 @@ import { formatCurrency, SPORT_ICONS } from '@/lib/utils';
 import type { Turf } from '@/types';
 import {
   Search, MapPin, Star, ChevronRight,
-  SlidersHorizontal, CheckCircle, PartyPopper, Compass, CalendarCheck, CreditCard, Trophy
+  SlidersHorizontal, CheckCircle, Compass, CalendarCheck, CreditCard, Trophy
 } from 'lucide-react';
+import FilterSheet from '@/components/turf/FilterSheet';
+import IntroScreen from '@/components/ui/IntroScreen';
+import { AnimatePresence } from 'framer-motion';
 
 /* ═══════════════════════════════════════
-   Turf List Item (shared for both viewports)
+   Mobile Turf Card (list item)
    ═══════════════════════════════════════ */
 function TurfItem({ turf }: { turf: Turf }) {
   return (
-    <Link href={`/turfs/${turf.id}`} className="flex items-start gap-3 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors">
-      <div className="w-[68px] h-[68px] rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
+    <Link href={`/turfs/${turf.id}`} className="flex items-start gap-3 py-3 border-b border-gray-100 last:border-0 active:bg-gray-50 transition-colors">
+      <div className="w-[72px] h-[72px] rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
         {turf.photos && turf.photos.length > 0 ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={turf.photos[0]} alt={turf.name} className="w-full h-full object-cover" />
@@ -90,8 +93,6 @@ function DesktopTurfCard({ turf }: { turf: Turf }) {
   );
 }
 
-/* ═══════════════════════════════════════ */
-
 const FEATURES = [
   { label: 'Discover Turfs', icon: Compass },
   { label: 'Check Availability', icon: CalendarCheck },
@@ -104,21 +105,43 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [topTurfs, setTopTurfs] = useState<Turf[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
     fetchTopTurfs(6).then((data) => { setTopTurfs(data); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
+  const handleIntroComplete = () => {
+    sessionStorage.setItem('pf_intro_seen', 'true');
+    setShowIntro(false);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      window.location.href = `/turfs?search=${encodeURIComponent(searchQuery.trim())}`;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-dvh bg-white">
+      {/* Intro Overlay acts as splash/loading screen */}
+      <AnimatePresence>
+        {showIntro && <IntroScreen onComplete={handleIntroComplete} isLoading={loading} />}
+      </AnimatePresence>
+
+      {/* FilterSheet — shared */}
+      <FilterSheet open={filterOpen} onClose={() => setFilterOpen(false)} />
+
       {/* ═══════════════════════════════════════════════
-          MOBILE VIEW — PlayField Light Theme (exact ui.png)
+          MOBILE VIEW — PlayField Light Theme
           ═══════════════════════════════════════════════ */}
-      <div className="md:hidden pt-16 pb-[84px]">
+      <div className="md:hidden">
         {/* Search Bar */}
-        <div className="px-4 pb-3">
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5">
+        <div className="px-4 pb-3 pt-3">
+          <form onSubmit={handleSearch} className="flex items-center gap-2">
+            <div className="flex-1 flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-3 min-h-[44px]">
               <Search className="w-4 h-4 text-gray-400 shrink-0" />
               <input
                 type="text"
@@ -128,26 +151,31 @@ export default function HomePage() {
                 className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
               />
             </div>
-            <Link href="/turfs" className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-500 shrink-0">
+            <button
+              type="button"
+              onClick={() => setFilterOpen(true)}
+              className="w-11 h-11 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-500 shrink-0 active:bg-gray-100 transition-colors"
+              aria-label="Open filters"
+            >
               <SlidersHorizontal className="w-[18px] h-[18px]" />
-            </Link>
-          </div>
+            </button>
+          </form>
         </div>
 
         {/* Hero Banner */}
         <div className="px-4 mb-5">
-          <div className="relative rounded-2xl overflow-hidden bg-gray-900 p-5 min-h-[170px]">
+          <div className="relative rounded-2xl overflow-hidden bg-gray-900 min-h-[170px]">
             {/* Background Image */}
             <div className="absolute inset-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/landing-hero.png" alt="Turf" className="w-full h-full object-cover opacity-60 mix-blend-overlay" />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent"></div>
+              <img src="/landing-hero.png" alt="Turf" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/20" />
             </div>
-            
-            <div className="relative z-10">
+
+            <div className="relative z-10 p-5">
               <h2 className="text-[22px] font-extrabold text-white leading-tight">Ready to Play?</h2>
               <p className="text-sm text-gray-200 mt-1.5 leading-snug font-medium">Book your favorite turf<br />in seconds</p>
-              <Link href="/turfs" className="mt-5 inline-flex items-center gap-1.5 px-5 py-2.5 bg-green-600 text-white text-sm font-bold rounded-xl shadow-sm">
+              <Link href="/turfs" className="mt-5 inline-flex items-center gap-1.5 px-5 py-2.5 bg-green-600 text-white text-sm font-bold rounded-xl shadow-sm min-h-[44px]">
                 Book Now <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
               </Link>
             </div>
@@ -158,21 +186,15 @@ export default function HomePage() {
         <div className="px-4 mb-5">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[17px] font-bold text-gray-900">Popular Turfs</h2>
-            <Link href="/turfs" className="text-sm font-semibold text-green-600">See all</Link>
+            <Link href="/turfs" className="text-sm font-semibold text-green-600">See all →</Link>
           </div>
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="flex gap-3 animate-pulse">
-                  <div className="w-[68px] h-[68px] rounded-xl bg-gray-100" />
-                  <div className="flex-1 space-y-2 py-1"><div className="h-4 bg-gray-100 rounded w-3/4" /><div className="h-3 bg-gray-50 rounded w-1/2" /><div className="h-3 bg-gray-50 rounded w-1/4" /></div>
-                </div>
-              ))}
+          {topTurfs.length === 0 ? (
+            <div className="text-center py-12">
+              <MapPin className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+              <p className="text-gray-400 text-sm">No turfs available yet.</p>
             </div>
-          ) : topTurfs.length === 0 ? (
-            <div className="text-center py-12"><p className="text-gray-400 text-sm">No turfs available yet.</p></div>
           ) : (
-            <div>{topTurfs.slice(0, 4).map((turf) => (<TurfItem key={turf.id} turf={turf} />))}</div>
+            <div>{topTurfs.slice(0, 4).map((turf) => <TurfItem key={turf.id} turf={turf} />)}</div>
           )}
         </div>
 
@@ -180,10 +202,10 @@ export default function HomePage() {
         <div className="px-4 mb-6">
           <div className="bg-green-600 rounded-2xl px-5 py-4 flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-white/90 leading-tight">Invite your friends & get</p>
+              <p className="text-sm font-semibold text-white/90 leading-tight">Invite your friends &amp; get</p>
               <p className="text-lg font-extrabold text-white leading-tight mt-0.5">₹200 OFF</p>
             </div>
-            <Link href="/invite" className="px-6 py-2.5 bg-white text-green-700 text-sm font-bold rounded-xl shadow-sm">
+            <Link href="/invite" className="px-6 py-2.5 bg-white text-green-700 text-sm font-bold rounded-xl shadow-sm min-h-[44px] flex items-center">
               Invite
             </Link>
           </div>
@@ -191,10 +213,10 @@ export default function HomePage() {
       </div>
 
       {/* ═══════════════════════════════════════════════
-          DESKTOP VIEW — Landing Page (matching ui.png left panel)
+          DESKTOP VIEW — Landing Page
           ═══════════════════════════════════════════════ */}
       <div className="hidden md:block">
-        {/* Hero Section — exact ui.png layout */}
+        {/* Hero Section */}
         <section className="min-h-[85vh] flex items-center bg-white">
           <div className="max-w-7xl mx-auto px-8 w-full grid grid-cols-2 gap-16 items-center">
             {/* Left — Branding & Features */}
@@ -234,12 +256,11 @@ export default function HomePage() {
               </div>
             </motion.div>
 
-            {/* Right — Hero Image (goal + ball like ui.png) */}
+            {/* Right — Hero Image */}
             <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="flex justify-center">
               <div className="relative w-full max-w-lg">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/landing-hero.png" alt="Football on green turf" className="w-full h-auto rounded-3xl shadow-2xl" />
-                {/* Floating stat cards */}
                 <div className="absolute -bottom-6 -left-6 bg-white pf-card px-4 py-3 flex items-center gap-3 shadow-lg">
                   <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center"><MapPin className="w-5 h-5 text-green-600" /></div>
                   <div><p className="text-xs text-gray-400">Active Turfs</p><p className="text-lg font-bold text-gray-900">500+</p></div>
@@ -265,9 +286,7 @@ export default function HomePage() {
                 View All <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
-            {loading ? (
-              <div className="grid grid-cols-3 gap-6">{[1, 2, 3].map(i => <div key={i} className="h-72 bg-gray-200 rounded-2xl animate-pulse" />)}</div>
-            ) : topTurfs.length === 0 ? (
+            {topTurfs.length === 0 ? (
               <div className="text-center py-16 pf-card rounded-2xl">
                 <p className="text-gray-500">No turfs listed yet.</p>
                 <Link href="/auth?role=owner" className="mt-4 inline-block px-6 py-3 bg-green-600 text-white rounded-xl font-bold text-sm">Register as Owner</Link>

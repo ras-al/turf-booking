@@ -36,16 +36,16 @@ export default function ProfilePage() {
   const menuItems = [
     { label: 'My Bookings', icon: Calendar, href: '/booking/history' },
     { label: 'Favorites', icon: Heart, href: '/favorites' },
-    { label: 'Payment Methods', icon: CreditCard, href: '#' },
+    { label: 'Payment Methods', icon: CreditCard, href: '/coming-soon' },
     { label: 'Invite Friends', icon: Users, href: '/invite', badge: 'Get ₹200' },
-    { label: 'Help & Support', icon: HelpCircle, href: '#' },
-    { label: 'Settings', icon: Settings, href: '#' },
+    { label: 'Help & Support', icon: HelpCircle, href: '/help' },
+    { label: 'Settings', icon: Settings, href: '/settings' },
   ];
 
   return (
     <div className="min-h-screen bg-white">
       {/* MOBILE */}
-      <div className="md:hidden pt-14 pb-[84px]">
+      <div className="md:hidden">
         <div className="bg-gradient-to-br from-green-600 via-green-500 to-green-400 px-5 pt-8 pb-8 rounded-b-3xl">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-white/20 border-2 border-white flex items-center justify-center text-white text-2xl font-bold">

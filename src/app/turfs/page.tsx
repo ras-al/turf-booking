@@ -9,6 +9,7 @@ import { formatCurrency, SPORT_ICONS, ALL_SPORTS, getRoadDistance, formatDistanc
 import { useFilterStore } from '@/stores/filter-store';
 import type { Turf } from '@/types';
 import { MapPin, Star, Search, SlidersHorizontal, X } from 'lucide-react';
+import FilterSheet from '@/components/turf/FilterSheet';
 
 function TurfCard({ turf }: { turf: Turf }) {
   return (
@@ -109,6 +110,7 @@ function TurfsContent() {
   const [allTurfs, setAllTurfs] = useState<Turf[]>([]);
   const [turfsWithDistance, setTurfsWithDistance] = useState<Turf[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -171,43 +173,29 @@ function TurfsContent() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* FilterSheet bottom sheet */}
+      <FilterSheet open={isSheetOpen} onClose={() => setIsSheetOpen(false)} />
+
       {/* ═══════════════════════════════════════
           MOBILE VIEW
           ═══════════════════════════════════════ */}
-      <div className="md:hidden pt-14">
+      <div className="md:hidden">
         {/* Search + Filter Header */}
-        <div className="px-4 pt-2 pb-3 border-b border-gray-100">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex-1 flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5">
+        <div className="px-4 pt-3 pb-3 border-b border-gray-100">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex-1 flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 min-h-[44px]">
               <Search className="w-4 h-4 text-gray-400 shrink-0" />
               <input type="text" placeholder="Search turfs, cities..." value={filters.search || ''} onChange={(e) => setFilter('search', e.target.value || undefined)} className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none" />
+              {filters.search && <button onClick={() => setFilter('search', undefined)} className="text-gray-400"><X className="w-4 h-4" /></button>}
             </div>
-            <button onClick={() => setIsFilterOpen(!isFilterOpen)} className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all relative ${isFilterOpen ? 'bg-green-50 border-green-300 text-green-600' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
+            <button onClick={() => setIsSheetOpen(true)} className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border transition-all relative ${activeFilterCount > 0 ? 'bg-green-50 border-green-300 text-green-600' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
               <SlidersHorizontal className="w-4 h-4" />
               {activeFilterCount > 0 && (<span className="absolute -top-1 -right-1 w-4 h-4 bg-green-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{activeFilterCount}</span>)}
             </button>
           </div>
           <p className="text-xs text-gray-400">{loading ? 'Loading...' : `${filteredTurfs.length} turf${filteredTurfs.length !== 1 ? 's' : ''} found`}</p>
         </div>
-
-        <AnimatePresence>
-          {isFilterOpen && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="bg-gray-50 border-b border-gray-200 overflow-hidden">
-              <div className="px-4 py-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-gray-900">Filters</h3>
-                  <button onClick={resetFilters} className="text-xs font-medium text-red-500">Reset</button>
-                </div>
-                <div><label className="text-xs text-gray-500 font-medium mb-1.5 block">Sport</label><select value={filters.sport || ''} onChange={(e) => setFilter('sport', e.target.value || undefined)} className="w-full px-3 py-2.5 bg-white border border-gray-200 text-gray-900 text-sm rounded-xl outline-none capitalize"><option value="">All Sports</option>{ALL_SPORTS.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}</select></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><label className="text-xs text-gray-500 font-medium mb-1.5 block">Min Rating</label><select value={filters.minRating || ''} onChange={(e) => setFilter('minRating', e.target.value ? Number(e.target.value) : undefined)} className="w-full px-3 py-2.5 bg-white border border-gray-200 text-gray-900 text-sm rounded-xl outline-none"><option value="">Any</option><option value="3">3+ Stars</option><option value="4">4+ Stars</option><option value="4.5">4.5+ Stars</option></select></div>
-                  <div><label className="text-xs text-gray-500 font-medium mb-1.5 block">Sort By</label><select value={filters.sortBy || 'newest'} onChange={(e) => setFilter('sortBy', e.target.value as typeof filters.sortBy)} className="w-full px-3 py-2.5 bg-white border border-gray-200 text-gray-900 text-sm rounded-xl outline-none"><option value="newest">Newest</option><option value="price_asc">Price: Low</option><option value="price_desc">Price: High</option><option value="rating">Rating</option><option value="distance">Nearest</option></select></div>
-                </div>
-                <button onClick={() => setIsFilterOpen(false)} className="w-full py-2.5 bg-green-600 text-white text-sm font-bold rounded-xl">Apply Filters</button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <AnimatePresence>{/* desktop filter panel handled below */}</AnimatePresence>
 
         <div className="px-4 py-2 pb-[84px]">
           {loading ? (
