@@ -9,6 +9,7 @@ export interface Profile {
   full_name: string;
   avatar_url: string | null;
   role: UserRole;
+  referral_code: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -22,11 +23,14 @@ export interface Turf {
   city: string;
   latitude: number | null;
   longitude: number | null;
-  photos: string[]; // base64 encoded
+  photos: string[];
   amenities: string[];
   sports: string[];
   size: string | null; // '5v5', '7v7', '11v11'
   price_per_hour: number; // in paise (INR × 100)
+  opening_time: string; // HH:MM
+  closing_time: string; // HH:MM
+  slot_duration_minutes: number;
   is_active: boolean;
   is_approved: boolean;
   avg_rating: number;
@@ -51,7 +55,7 @@ export interface Slot {
 }
 
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
-export type PaymentStatus = 'unpaid' | 'paid' | 'refunded';
+export type PaymentStatus = 'free' | 'unpaid' | 'paid' | 'refunded';
 
 export interface Booking {
   id: string;
@@ -61,6 +65,7 @@ export interface Booking {
   status: BookingStatus;
   payment_status: PaymentStatus;
   total_amount: number; // in paise
+  booking_code: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -90,21 +95,17 @@ export interface Review {
   turf_id: string;
   rating: number; // 1-5
   text: string | null;
-  photos: string[]; // base64
+  photos: string[];
   created_at: string;
   user?: Profile;
 }
 
-export type NotificationChannel = 'whatsapp' | 'sms' | 'email';
-
 export interface Notification {
   id: string;
   user_id: string;
-  booking_id: string | null;
-  type: string;
-  channel: NotificationChannel;
-  message: string;
-  sent_at: string | null;
+  title: string;
+  body: string | null;
+  is_read: boolean;
   created_at: string;
 }
 

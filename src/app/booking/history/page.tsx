@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { fetchUserBookings, createReview, hasUserReviewed } from '@/lib/supabase/queries';
+import { fetchUserBookings, createReview, hasUserReviewed, cancelBooking } from '@/lib/supabase/queries';
 import { formatCurrency, formatTime, formatDate } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import type { Booking } from '@/types';
-import { Calendar, MapPin, Ticket, Loader2, Star, MessageSquarePlus, X } from 'lucide-react';
+import { Calendar, MapPin, Ticket, Loader2, Star, MessageSquarePlus, X, AlertTriangle } from 'lucide-react';
 
 export default function BookingHistoryPage() {
   const { user, isLoading: authLoading } = useAuthStore();
@@ -24,6 +24,11 @@ export default function BookingHistoryPage() {
   const [reviewText, setReviewText] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewedTurfIds, setReviewedTurfIds] = useState<Set<string>>(new Set());
+
+  // Cancel Modal State
+  const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -77,8 +82,23 @@ export default function BookingHistoryPage() {
     }
   };
 
+  const handleCancelBooking = async () => {
+    if (!user || !cancellingBookingId) return;
+    setIsCancelling(true);
+    setCancelError(null);
+    try {
+      await cancelBooking(cancellingBookingId, user.id);
+      // Update local state
+      setBookings(prev => prev.map(b => b.id === cancellingBookingId ? { ...b, status: 'cancelled' } : b));
+      setCancellingBookingId(null);
+    } catch (err: unknown) {
+      setCancelError(err instanceof Error ? err.message : 'Failed to cancel booking.');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   // Split into upcoming vs past
-  const now = new Date();
   const upcomingBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'pending');
   const pastBookings = bookings.filter(b => b.status === 'completed' || b.status === 'cancelled');
   const displayedBookings = tab === 'upcoming' ? upcomingBookings : pastBookings;
@@ -143,6 +163,7 @@ export default function BookingHistoryPage() {
             <div className="space-y-3">
               {displayedBookings.map((booking, index) => {
                 const canReview = (booking.status === 'confirmed' || booking.status === 'completed') && !reviewedTurfIds.has(booking.turf_id);
+                const canCancel = booking.status === 'confirmed' || booking.status === 'pending';
                 return (
                   <motion.div
                     key={booking.id}
@@ -174,6 +195,9 @@ export default function BookingHistoryPage() {
                             weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
                           })}
                         </p>
+                        {booking.booking_code && (
+                          <p className="text-[10px] font-mono text-gray-400 mt-0.5">ID: {booking.booking_code}</p>
+                        )}
                       </div>
                     </div>
 
@@ -188,14 +212,24 @@ export default function BookingHistoryPage() {
                       </span>
                     </div>
 
-                    {canReview && (
-                      <button
-                        onClick={() => handleOpenReviewModal(booking)}
-                        className="w-full mt-3 py-2 text-sm font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-center gap-1.5"
-                      >
-                        <MessageSquarePlus className="w-3.5 h-3.5" /> Write a Review
-                      </button>
-                    )}
+                    <div className="flex gap-2 mt-3">
+                      {canCancel && (
+                        <button
+                          onClick={() => setCancellingBookingId(booking.id)}
+                          className="flex-1 py-2 text-sm font-semibold text-red-500 bg-red-50 border border-red-200 rounded-xl flex items-center justify-center gap-1.5"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                      {canReview && (
+                        <button
+                          onClick={() => handleOpenReviewModal(booking)}
+                          className="flex-1 py-2 text-sm font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-center gap-1.5"
+                        >
+                          <MessageSquarePlus className="w-3.5 h-3.5" /> Review
+                        </button>
+                      )}
+                    </div>
                   </motion.div>
                 );
               })}
@@ -225,6 +259,7 @@ export default function BookingHistoryPage() {
             <div className="space-y-4">
               {bookings.map((booking, index) => {
                 const canReview = (booking.status === 'confirmed' || booking.status === 'completed') && !reviewedTurfIds.has(booking.turf_id);
+                const canCancel = booking.status === 'confirmed' || booking.status === 'pending';
                 return (
                   <motion.div key={booking.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="pf-card rounded-2xl overflow-hidden group hover:border-green-200 transition-all">
                     <div className="flex flex-col sm:flex-row">
@@ -236,6 +271,9 @@ export default function BookingHistoryPage() {
                         }`}>{booking.status}</span>
                         <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Booked On</div>
                         <div className="text-sm text-gray-900 font-semibold">{new Date(booking.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                        {booking.booking_code && (
+                          <div className="text-xs font-mono text-gray-400 mt-1">ID: {booking.booking_code}</div>
+                        )}
                       </div>
                       <div className="flex-1 p-5">
                         <div className="flex justify-between items-start mb-4">
@@ -253,11 +291,18 @@ export default function BookingHistoryPage() {
                             <Ticket className="w-4 h-4 text-green-600" />
                             <div className="text-sm font-semibold text-gray-700">{booking.slot_ids.length} Slot{booking.slot_ids.length > 1 ? 's' : ''}</div>
                           </div>
-                          {canReview && (
-                            <button onClick={() => handleOpenReviewModal(booking)} className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-600 border border-amber-200 rounded-lg text-sm font-bold hover:bg-amber-100 transition-colors">
-                              <MessageSquarePlus className="w-4 h-4" /> Write a Review
-                            </button>
-                          )}
+                          <div className="flex gap-2">
+                            {canCancel && (
+                              <button onClick={() => setCancellingBookingId(booking.id)} className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-500 border border-red-200 rounded-lg text-sm font-bold hover:bg-red-100 transition-colors">
+                                Cancel Booking
+                              </button>
+                            )}
+                            {canReview && (
+                              <button onClick={() => handleOpenReviewModal(booking)} className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-600 border border-amber-200 rounded-lg text-sm font-bold hover:bg-amber-100 transition-colors">
+                                <MessageSquarePlus className="w-4 h-4" /> Write a Review
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -268,6 +313,34 @@ export default function BookingHistoryPage() {
           )}
         </div>
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      <AnimatePresence>
+        {cancellingBookingId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white border border-gray-200 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+              <div className="flex justify-center mb-4">
+                <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+                  <AlertTriangle className="w-7 h-7 text-red-500" />
+                </div>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 text-center mb-1">Cancel Booking?</h3>
+              <p className="text-sm text-gray-500 text-center mb-6">This action cannot be undone. The slots will be released back to availability.</p>
+              {cancelError && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
+                  <p className="text-sm text-red-600">{cancelError}</p>
+                </div>
+              )}
+              <div className="flex gap-3">
+                <button onClick={() => { setCancellingBookingId(null); setCancelError(null); }} className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl text-sm">Keep Booking</button>
+                <button onClick={handleCancelBooking} disabled={isCancelling} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+                  {isCancelling ? <><Loader2 className="w-4 h-4 animate-spin" /> Cancelling...</> : 'Yes, Cancel'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Review Modal — shared */}
       <AnimatePresence>

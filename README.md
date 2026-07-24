@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PlayField - Turf Booking Platform
 
-## Getting Started
+PlayField is a modern, responsive, and full-featured turf booking web application built with Next.js. It connects sports enthusiasts with turf owners, providing a seamless experience for finding, booking, and managing sports facilities.
 
-First, run the development server:
+## 🚀 Tech Stack
 
+- **Framework:** Next.js 16 (App Router)
+- **Styling:** Tailwind CSS, Framer Motion (for animations)
+- **State Management:** Zustand, React Query
+- **Database & Auth:** Supabase (PostgreSQL)
+- **Icons:** Lucide React
+
+## ✨ Features
+
+### For Users
+- **Discover Turfs:** Search and filter turfs by location, sports, and availability.
+- **Real-Time Booking:** View real-time slot availability and book instantly.
+- **Atomic Bookings:** Race-condition-free booking system ensures no double bookings.
+- **Reviews & Ratings:** Leave reviews and photos for turfs.
+- **Favorites:** Save favorite turfs for quick access.
+- **Notifications:** Receive instant updates on booking confirmations and cancellations.
+
+### For Turf Owners
+- **List Turfs:** Add new turfs with photos, amenities, sports supported, and pricing.
+- **Automated Slot Generation:** Slots are automatically generated based on opening/closing times and slot duration.
+- **Dashboard:** Manage bookings, view earnings, and track turf performance.
+
+### For Admins
+- **Platform Management:** Approve or reject turf listings.
+- **Oversight:** View all platform bookings and users.
+
+## 🗄️ Database Schema
+
+The platform is powered by a robust PostgreSQL database hosted on Supabase. Key tables include:
+- **profiles:** User accounts with roles (`user`, `owner`, `admin`).
+- **turfs:** Details of the sports facilities.
+- **slots:** Time slots for booking (auto-generated).
+- **bookings:** User reservations with support for atomic transactions.
+- **reviews & favorites:** User engagement data.
+- **payments:** Payment tracking (ready for Razorpay integration).
+- **notifications:** In-app alerts for users.
+
+## ⚙️ How It Works (Under the Hood)
+
+- **Atomic Booking System:** Uses PostgreSQL row-level locks (`FOR UPDATE`) to ensure that multiple users cannot book the same slot simultaneously.
+- **Automated Workflows:** Database triggers automatically handle tasks like updating average ratings when a review is posted, setting `updated_at` timestamps, and auto-generating slots for the next 14 days when a turf is approved.
+- **Role-Based Access Control:** Strict Row Level Security (RLS) policies in Supabase ensure that users can only access their own data, while owners and admins have appropriate elevated permissions.
+
+## 🛠️ Setup & Installation
+
+### 1. Clone the repository
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd turf-booking
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Install dependencies
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Supabase Setup
+- Create a new Supabase project.
+- Go to the SQL Editor and run the contents of `playfield-schema.sql` to initialize the database schema, functions, triggers, and RLS policies.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Environment Variables
+Create a `.env.local` file in the root directory (based on `.env.example`) and add your credentials:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-## Learn More
+### 5. Run the development server
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.

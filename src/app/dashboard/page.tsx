@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { fetchOwnerTurfs, fetchOwnerBookings, fetchOwnerStats, fetchTodaySlots } from '@/lib/supabase/queries';
+import { fetchOwnerTurfs, fetchOwnerBookings, fetchOwnerStats, fetchTodaySlots, updateSlotStatus } from '@/lib/supabase/queries';
 import { formatCurrency, formatTime, SPORT_ICONS } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import type { Turf, Booking, Slot } from '@/types';
@@ -45,6 +45,20 @@ export default function DashboardPage() {
   }, [selectedTurf]);
 
   const currentTurf = ownerTurfs.find((t) => t.id === selectedTurf) || ownerTurfs[0];
+
+  const handleToggleSlotStatus = async (slotId: string, currentStatus: string) => {
+    if (currentStatus === 'booked') return;
+    const newStatus = currentStatus === 'blocked' ? 'available' : 'blocked';
+    
+    setTodaySlots(prev => prev.map(s => s.id === slotId ? { ...s, status: newStatus } : s));
+    
+    try {
+      await updateSlotStatus(slotId, newStatus as 'available' | 'blocked');
+    } catch (error) {
+      setTodaySlots(prev => prev.map(s => s.id === slotId ? { ...s, status: currentStatus as any } : s));
+      alert('Failed to update slot status');
+    }
+  };
 
   if (loading) {
     return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="w-8 h-8 text-green-600 animate-spin" /></div>;
@@ -169,10 +183,20 @@ export default function DashboardPage() {
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                   {todaySlots.map((slot) => (
-                    <div key={slot.id} className={`px-2 py-3 rounded-lg text-center font-mono text-sm ${slot.status === 'booked' ? 'slot-booked' : slot.status === 'blocked' ? 'slot-blocked' : 'slot-available'}`}>
+                    <button
+                      key={slot.id}
+                      onClick={() => handleToggleSlotStatus(slot.id, slot.status)}
+                      disabled={slot.status === 'booked'}
+                      title={slot.status === 'booked' ? 'Booked - Cannot edit' : 'Click to toggle available/blocked'}
+                      className={`px-2 py-3 rounded-lg text-center font-mono text-sm transition-all focus:outline-none ${
+                        slot.status === 'booked' ? 'slot-booked cursor-not-allowed opacity-80' : 
+                        slot.status === 'blocked' ? 'slot-blocked hover:opacity-90 ring-2 ring-red-400 ring-inset' : 
+                        'slot-available hover:bg-green-100 hover:text-green-800'
+                      }`}
+                    >
                       <div className="font-bold">{formatTime(slot.start_time)}</div>
                       <div className="text-xs opacity-70 capitalize">{slot.status}</div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -205,8 +229,13 @@ export default function DashboardPage() {
                   ))}
                 </div>
                 <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-100">
-                  <span className="font-bold text-green-600">{formatCurrency(turf.price_per_hour)}/hr</span>
-                  <span className="text-gray-500 flex items-center gap-1"><Star className="w-3 h-3 text-amber fill-amber" /> {turf.avg_rating} ({turf.total_reviews})</span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-green-600">{formatCurrency(turf.price_per_hour)}/hr</span>
+                    <span className="text-gray-500 flex items-center gap-1"><Star className="w-3 h-3 text-amber fill-amber" /> {turf.avg_rating} ({turf.total_reviews})</span>
+                  </div>
+                  <Link href={`/dashboard/edit-turf/${turf.id}`} className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-200 transition-colors">
+                    Edit Turf
+                  </Link>
                 </div>
               </motion.div>
             ))}

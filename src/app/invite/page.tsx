@@ -6,12 +6,6 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import { useRouter } from 'next/navigation';
 
-function generateReferralCode(userId: string): string {
-  // Deterministic 8-char code from user ID
-  const hash = userId.replace(/-/g, '').slice(0, 6).toUpperCase();
-  return `PF${hash}`;
-}
-
 export default function InvitePage() {
   const [copied, setCopied] = useState(false);
   const { user, isLoading } = useAuthStore();
@@ -24,8 +18,10 @@ export default function InvitePage() {
   if (isLoading) return <div className="min-h-dvh flex items-center justify-center"><div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" /></div>;
   if (!user) return null;
 
-  const code = generateReferralCode(user.id);
-  const shareText = `Join PlayField and book sports turfs instantly! Use my code ${code} to get ₹200 OFF your first booking. Download now: ${window?.location?.origin || 'https://playfield.app'}`;
+  // Use the real referral_code from the profile (set by the DB trigger)
+  const code = user.referral_code || `PF${user.id.replace(/-/g, '').slice(0, 6).toUpperCase()}`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://playfield.app';
+  const shareText = `Join PlayField and book sports turfs instantly! Use my code ${code} to get ₹200 OFF your first booking. Download now: ${origin}`;
   const waLink = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
   const handleCopy = () => {
@@ -36,7 +32,7 @@ export default function InvitePage() {
 
   const handleMoreOptions = async () => {
     if (navigator.share) {
-      try { await navigator.share({ title: 'PlayField — ₹200 OFF', text: shareText, url: window.location.origin }); }
+      try { await navigator.share({ title: 'PlayField — ₹200 OFF', text: shareText, url: origin }); }
       catch { /* dismissed */ }
     } else {
       navigator.clipboard.writeText(shareText);

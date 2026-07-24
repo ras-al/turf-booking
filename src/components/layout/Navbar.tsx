@@ -6,7 +6,9 @@ import { useFilterStore } from '@/stores/filter-store';
 import { Home, Search, Calendar, User, LogIn, LogOut, LayoutDashboard, Shield, Heart, Bell, MapPin, X, Crosshair, Loader2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { fetchNotifications, markAllNotificationsRead, fetchUnreadNotificationCount, fetchDistinctCities } from '@/lib/supabase/queries';
+import type { Notification } from '@/types';
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
@@ -17,8 +19,53 @@ export default function Navbar() {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [tempCity, setTempCity] = useState('');
   const [isLocating, setIsLocating] = useState(false);
+  const [cities, setCities] = useState<string[]>([]);
+
+  // Notification state
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   const currentCity = filters.city || 'Mumbai, India';
+
+  // Load cities for dropdown
+  useEffect(() => {
+    fetchDistinctCities().then(setCities).catch(() => {});
+  }, []);
+
+  // Load unread count
+  useEffect(() => {
+    if (user) {
+      fetchUnreadNotificationCount(user.id).then(setUnreadCount).catch(() => {});
+    }
+  }, [user]);
+
+  // Close notifications on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
+      }
+    }
+    if (showNotifications) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showNotifications]);
+
+  const handleOpenNotifications = useCallback(async () => {
+    if (!user) return;
+    setShowNotifications(prev => !prev);
+    if (!showNotifications) {
+      try {
+        const notifs = await fetchNotifications(user.id);
+        setNotifications(notifs);
+        if (unreadCount > 0) {
+          await markAllNotificationsRead(user.id);
+          setUnreadCount(0);
+        }
+      } catch { /* ignore */ }
+    }
+  }, [user, showNotifications, unreadCount]);
 
   // Auto-detect location on first visit
   useEffect(() => {
@@ -30,7 +77,6 @@ export default function Navbar() {
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser');
       return;
     }
     setIsLocating(true);
@@ -168,6 +214,45 @@ export default function Navbar() {
             <div className="flex items-center gap-3">
               {user ? (
                 <div className="flex items-center gap-3">
+                  {/* Desktop notification bell */}
+                  <div className="relative" ref={notifRef}>
+                    <button onClick={handleOpenNotifications} className="relative p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                      <Bell className="w-5 h-5 text-gray-600" />
+                      {unreadCount > 0 && (
+                        <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+                      )}
+                    </button>
+                    <AnimatePresence>
+                      {showNotifications && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                          className="absolute right-0 top-12 w-80 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+                        >
+                          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                            <h3 className="font-bold text-gray-900 text-sm">Notifications</h3>
+                          </div>
+                          <div className="max-h-80 overflow-y-auto">
+                            {notifications.length === 0 ? (
+                              <div className="px-4 py-8 text-center">
+                                <Bell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                                <p className="text-sm text-gray-400">No notifications yet</p>
+                              </div>
+                            ) : (
+                              notifications.map((n) => (
+                                <div key={n.id} className={`px-4 py-3 border-b border-gray-50 last:border-0 ${!n.is_read ? 'bg-green-50/50' : ''}`}>
+                                  <p className="text-sm font-semibold text-gray-900">{n.title}</p>
+                                  {n.body && <p className="text-xs text-gray-500 mt-0.5">{n.body}</p>}
+                                  <p className="text-[10px] text-gray-400 mt-1">{new Date(n.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-green-100 border border-green-200 flex items-center justify-center text-green-700 text-sm font-bold">
                       {user.full_name.charAt(0)}
@@ -213,10 +298,48 @@ export default function Navbar() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
-        <button className="relative p-2" onClick={() => alert('No new notifications')}>
-          <Bell className="w-6 h-6 text-gray-900" />
-          <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-        </button>
+        <div className="relative" ref={notifRef}>
+          <button className="relative p-2" onClick={handleOpenNotifications}>
+            <Bell className="w-6 h-6 text-gray-900" />
+            {unreadCount > 0 && (
+              <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+            )}
+          </button>
+          {/* Mobile notification dropdown */}
+          <AnimatePresence>
+            {showNotifications && (
+              <motion.div
+                initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                className="absolute right-0 top-12 w-[calc(100vw-32px)] max-w-sm bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+              >
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900 text-sm">Notifications</h3>
+                  <button onClick={() => setShowNotifications(false)} className="p-1">
+                    <X className="w-4 h-4 text-gray-400" />
+                  </button>
+                </div>
+                <div className="max-h-72 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-8 text-center">
+                      <Bell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                      <p className="text-sm text-gray-400">No notifications yet</p>
+                    </div>
+                  ) : (
+                    notifications.map((n) => (
+                      <div key={n.id} className={`px-4 py-3 border-b border-gray-50 last:border-0 ${!n.is_read ? 'bg-green-50/50' : ''}`}>
+                        <p className="text-sm font-semibold text-gray-900">{n.title}</p>
+                        {n.body && <p className="text-xs text-gray-500 mt-0.5">{n.body}</p>}
+                        <p className="text-[10px] text-gray-400 mt-1">{new Date(n.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════
@@ -282,6 +405,32 @@ export default function Navbar() {
                   autoFocus
                 />
                 </div>
+
+                {/* City quick-pick buttons */}
+                {cities.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Popular Cities</label>
+                    <div className="flex flex-wrap gap-2">
+                      {cities.slice(0, 8).map(city => (
+                        <button
+                          key={city}
+                          onClick={() => {
+                            setFilter('city', city);
+                            setTempCity(city);
+                            setShowLocationModal(false);
+                          }}
+                          className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors ${
+                            tempCity === city
+                              ? 'bg-green-50 border-green-300 text-green-700'
+                              : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300'
+                          }`}
+                        >
+                          {city}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 
                 <button 
                   onClick={handleGetLocation}

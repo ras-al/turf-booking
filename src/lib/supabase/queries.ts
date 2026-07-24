@@ -2,7 +2,7 @@
 // All database operations go through this module
 
 import { createClient } from './client';
-import type { Turf, Slot, Booking, Review, Profile, Payment } from '@/types';
+import type { Turf, Slot, Booking, Review, Profile, Payment, Notification } from '@/types';
 
 const supabase = createClient();
 
@@ -86,6 +86,9 @@ export async function createTurf(turf: {
   sports: string[];
   size?: string;
   price_per_hour: number;
+  opening_time?: string;
+  closing_time?: string;
+  slot_duration_minutes?: number;
 }): Promise<Turf> {
   const { data, error } = await supabase
     .from('turfs')
@@ -102,6 +105,9 @@ export async function createTurf(turf: {
       sports: turf.sports,
       size: turf.size || null,
       price_per_hour: turf.price_per_hour,
+      opening_time: turf.opening_time || '06:00',
+      closing_time: turf.closing_time || '23:00',
+      slot_duration_minutes: turf.slot_duration_minutes || 60,
       is_active: true,
       is_approved: false,
     })
@@ -120,6 +126,46 @@ export async function updateTurfApproval(turfId: string, isApproved: boolean): P
     .eq('id', turfId);
 
   if (error) throw error;
+}
+
+/** Update an existing turf (owner) */
+export async function updateTurf(turfId: string, updates: Partial<{
+  name: string;
+  description: string;
+  address: string;
+  city: string;
+  photos: string[];
+  amenities: string[];
+  sports: string[];
+  size: string;
+  price_per_hour: number;
+  opening_time: string;
+  closing_time: string;
+  slot_duration_minutes: number;
+  is_active: boolean;
+}>): Promise<Turf> {
+  const { data, error } = await supabase
+    .from('turfs')
+    .update(updates)
+    .eq('id', turfId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/** Fetch distinct cities from turfs (for location selector) */
+export async function fetchDistinctCities(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('turfs')
+    .select('city')
+    .eq('is_active', true)
+    .eq('is_approved', true);
+
+  if (error) throw error;
+  const cities = [...new Set((data || []).map(d => d.city).filter(Boolean))];
+  return cities.sort();
 }
 
 // ═══════════════════════════════════════
@@ -145,89 +191,49 @@ export async function fetchTodaySlots(turfId: string): Promise<Slot[]> {
   return fetchSlots(turfId, today);
 }
 
-/** Mark slots as booked */
-export async function markSlotsBooked(slotIds: string[]): Promise<void> {
+/** Update a slot's status */
+export async function updateSlotStatus(slotId: string, status: 'available' | 'booked' | 'blocked'): Promise<void> {
   const { error } = await supabase
     .from('slots')
-    .update({ status: 'booked', held_until: null, held_by: null })
-    .in('id', slotIds);
+    .update({ status })
+    .eq('id', slotId);
 
   if (error) throw error;
 }
 
-/**
- * Optimistically hold slots for a user during checkout (10 min hold).
- * Returns false if any slot is already taken by someone else.
- */
-export async function holdSlots(slotIds: string[], userId: string): Promise<boolean> {
-  const heldUntil = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-  const now = new Date().toISOString();
-
-  const { data: slots } = await supabase
-    .from('slots')
-    .select('id, status, held_until, held_by')
-    .in('id', slotIds);
-
-  if (!slots) return false;
-
-  const unavailable = slots.filter((s) => {
-    if (s.status === 'booked' || s.status === 'blocked') return true;
-    if (s.held_by && s.held_by !== userId && s.held_until && s.held_until > now) return true;
-    return false;
-  });
-
-  if (unavailable.length > 0) return false;
-
-  const { error } = await supabase
-    .from('slots')
-    .update({ held_until: heldUntil, held_by: userId })
-    .in('id', slotIds);
-
-  return !error;
-}
-
-/** Release held slots for a user */
-export async function releaseHeldSlots(slotIds: string[], userId: string): Promise<void> {
-  await supabase
-    .from('slots')
-    .update({ held_until: null, held_by: null })
-    .in('id', slotIds)
-    .eq('held_by', userId);
-}
-
 // ═══════════════════════════════════════
-// BOOKINGS
+// BOOKINGS (Atomic via RPC)
 // ═══════════════════════════════════════
 
-/** Create a new booking */
-export async function createBooking(booking: {
+/** Book slots atomically via the book_slots RPC — race-condition-free */
+export async function bookSlots(params: {
   user_id: string;
   turf_id: string;
   slot_ids: string[];
   total_amount: number;
   notes?: string;
-  payment_status?: 'free' | 'unpaid' | 'paid' | 'refunded';
 }): Promise<Booking> {
-  const { data, error } = await supabase
-    .from('bookings')
-    .insert({
-      user_id: booking.user_id,
-      turf_id: booking.turf_id,
-      slot_ids: booking.slot_ids,
-      total_amount: booking.total_amount,
-      status: 'confirmed',
-      payment_status: booking.payment_status || 'free',
-      notes: booking.notes || null,
-    })
-    .select()
-    .single();
+  const { data, error } = await supabase.rpc('book_slots', {
+    p_user_id: params.user_id,
+    p_turf_id: params.turf_id,
+    p_slot_ids: params.slot_ids,
+    p_total_amount: params.total_amount,
+    p_notes: params.notes || null,
+  });
 
   if (error) throw error;
+  return data as unknown as Booking;
+}
 
-  // Mark slots as booked
-  await markSlotsBooked(booking.slot_ids);
+/** Cancel a booking via the cancel_booking RPC */
+export async function cancelBooking(bookingId: string, userId: string): Promise<Booking> {
+  const { data, error } = await supabase.rpc('cancel_booking', {
+    p_booking_id: bookingId,
+    p_user_id: userId,
+  });
 
-  return data;
+  if (error) throw error;
+  return data as unknown as Booking;
 }
 
 /** Fetch bookings for a user */
@@ -294,7 +300,7 @@ export async function fetchUserFavorites(userId: string): Promise<Turf[]> {
 export async function isFavorite(userId: string, turfId: string): Promise<boolean> {
   const { data } = await supabase
     .from('favorites')
-    .select('id')
+    .select('user_id')
     .eq('user_id', userId)
     .eq('turf_id', turfId)
     .maybeSingle();
@@ -313,6 +319,56 @@ export async function toggleFavorite(userId: string, turfId: string): Promise<bo
     await supabase.from('favorites').insert({ user_id: userId, turf_id: turfId });
     return true;
   }
+}
+
+// ═══════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════
+
+/** Fetch notifications for a user */
+export async function fetchNotifications(userId: string): Promise<Notification[]> {
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) throw error;
+  return data || [];
+}
+
+/** Fetch unread notification count */
+export async function fetchUnreadNotificationCount(userId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('is_read', false);
+
+  if (error) return 0;
+  return count || 0;
+}
+
+/** Mark a notification as read */
+export async function markNotificationRead(notificationId: string): Promise<void> {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('id', notificationId);
+
+  if (error) throw error;
+}
+
+/** Mark all notifications as read */
+export async function markAllNotificationsRead(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('user_id', userId)
+    .eq('is_read', false);
+
+  if (error) throw error;
 }
 
 // ═══════════════════════════════════════
@@ -424,6 +480,19 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
     .single();
 
   if (error) return null;
+  return data;
+}
+
+/** Update user profile */
+export async function updateProfile(userId: string, updates: { full_name?: string; phone?: string }): Promise<Profile> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
   return data;
 }
 

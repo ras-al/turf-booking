@@ -6,33 +6,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useBookingStore } from '@/stores/booking-store';
 import { useAuthStore } from '@/stores/auth-store';
-import { createBooking, createPayment, updateBookingPaymentStatus, holdSlots } from '@/lib/supabase/queries';
+import { bookSlots } from '@/lib/supabase/queries';
 import { formatCurrency, formatTime, formatDate } from '@/lib/utils';
-import { Ticket, MapPin, ChevronLeft, Loader2, CheckCircle, Copy, Check, Share2 } from 'lucide-react';
-
-const PAYMENTS_MODE = process.env.NEXT_PUBLIC_PAYMENTS_MODE || 'mock';
-
-type UPIOption = { id: string; label: string; icon: string };
-const UPI_OPTIONS: UPIOption[] = [
-  { id: 'gpay', label: 'Google Pay', icon: 'G' },
-  { id: 'phonepe', label: 'PhonePe', icon: '₱' },
-  { id: 'paytm', label: 'Paytm', icon: 'P' },
-  { id: 'bhim', label: 'BHIM UPI', icon: 'B' },
-];
+import { MapPin, ChevronLeft, Loader2, CheckCircle, Copy, Check, Share2, Ticket, ShieldCheck } from 'lucide-react';
 
 export default function BookingConfirmPage() {
   const router = useRouter();
   const { selectedTurf, selectedSlots, totalAmount, resetBooking } = useBookingStore();
   const { user } = useAuthStore();
 
-  const [step, setStep] = useState<'payment' | 'confirmed'>('payment');
-  const [selectedUPI, setSelectedUPI] = useState('gpay');
+  const [step, setStep] = useState<'review' | 'confirmed'>('review');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [bookingId, setBookingId] = useState<string | null>(null);
-  const [bookingRef, setBookingRef] = useState('');
+  const [bookingCode, setBookingCode] = useState('');
   const [copied, setCopied] = useState(false);
-  const [slotsHeld, setSlotsHeld] = useState(false);
 
   const amount = totalAmount();
 
@@ -46,92 +33,51 @@ export default function BookingConfirmPage() {
   // Redirect if not logged in
   useEffect(() => {
     if (user === null) {
-      // wait a tick in case auth is loading
       const t = setTimeout(() => router.push('/auth?redirect=/booking/confirm'), 800);
       return () => clearTimeout(t);
     }
   }, [user, router]);
 
-  // Hold slots when page mounts
-  useEffect(() => {
-    if (!user || !selectedSlots.length) return;
-    holdSlots(selectedSlots.map(s => s.id), user.id).then(ok => setSlotsHeld(ok));
-  }, [user, selectedSlots]);
-
   if (!selectedTurf || selectedSlots.length === 0) return null;
 
-  const handlePay = async () => {
+  const handleConfirmBooking = async () => {
     if (!user) return;
-    if (!slotsHeld) {
-      setError('One or more slots are no longer available. Please go back and re-select.');
-      return;
-    }
 
     setIsProcessing(true);
     setError(null);
 
     try {
-      if (PAYMENTS_MODE === 'mock') {
-        // Mock payment flow — simulate 1s processing
-        await new Promise(r => setTimeout(r, 1200));
-        const booking = await createBooking({
-          user_id: user.id,
-          turf_id: selectedTurf.id,
-          slot_ids: selectedSlots.map(s => s.id),
-          total_amount: amount,
-          payment_status: 'paid',
-        });
-        await createPayment({ booking_id: booking.id, amount, method: selectedUPI, status: 'captured' });
-        setBookingId(booking.id);
-        setBookingRef(`PF${booking.id.slice(0,6).toUpperCase()}`);
-        setStep('confirmed');
-      } else {
-        // Razorpay flow — create booking first (unpaid), then open checkout
-        const booking = await createBooking({
-          user_id: user.id,
-          turf_id: selectedTurf.id,
-          slot_ids: selectedSlots.map(s => s.id),
-          total_amount: amount,
-          payment_status: 'unpaid',
-        });
-        const paymentRecord = await createPayment({ booking_id: booking.id, amount, method: 'razorpay', status: 'created' });
+      const booking = await bookSlots({
+        user_id: user.id,
+        turf_id: selectedTurf.id,
+        slot_ids: selectedSlots.map(s => s.id),
+        total_amount: amount,
+      });
 
-        // Open Razorpay checkout (requires window.Razorpay script loaded)
-        const options = {
-          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-          amount: amount, // already in paise
-          currency: 'INR',
-          name: 'PlayField',
-          description: `Booking at ${selectedTurf.name}`,
-          order_id: paymentRecord.razorpay_order_id,
-          handler: async (response: { razorpay_payment_id: string; razorpay_signature: string }) => {
-            await updateBookingPaymentStatus(booking.id, 'paid');
-            setBookingId(booking.id);
-            setBookingRef(`PF${booking.id.slice(0,6).toUpperCase()}`);
-            setStep('confirmed');
-          },
-          prefill: { name: user.full_name, email: user.email || '', contact: user.phone || '' },
-          theme: { color: '#16a34a' },
-        };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rzp = new (window as unknown as { Razorpay: new (o: unknown) => { open: () => void } }).Razorpay(options);
-        rzp.open();
-      }
+      setBookingCode(booking.booking_code || `PF${booking.id.slice(0,6).toUpperCase()}`);
+      setStep('confirmed');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
+      const message = err instanceof Error ? err.message : 'Booking failed. Please try again.';
+      // Detect the "slots no longer available" error from the RPC
+      if (message.includes('no longer available')) {
+        setError('Sorry, someone just booked one or more of your selected slots. Please go back and pick another time.');
+      } else {
+        setError(message);
+      }
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleCopyId = () => {
-    navigator.clipboard.writeText(bookingRef);
+    navigator.clipboard.writeText(bookingCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShare = async () => {
-    const text = `I just booked ${selectedTurf.name} on PlayField! Booking ID: ${bookingRef}`;
+    const slotSummary = selectedSlots.map(s => `${formatDate(s.date)} ${formatTime(s.start_time)}–${formatTime(s.end_time)}`).join(', ');
+    const text = `I just booked ${selectedTurf.name} on PlayField!\n📅 ${slotSummary}\n🎫 Booking: ${bookingCode}\nBook your turf at ${window.location.origin}`;
     if (navigator.share) {
       try { await navigator.share({ title: 'PlayField Booking', text, url: window.location.origin }); }
       catch { /* dismissed */ }
@@ -185,12 +131,18 @@ export default function BookingConfirmPage() {
               <span className="text-sm font-bold text-gray-900">Total</span>
               <span className="text-base font-bold text-green-600">{formatCurrency(amount)}</span>
             </div>
-            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-              <span className="text-xs text-gray-400">Booking ID</span>
-              <button onClick={handleCopyId} className="flex items-center gap-1.5 text-xs font-mono font-bold text-gray-700">
-                {bookingRef}
-                {copied ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3 text-gray-400" />}
-              </button>
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">Booking ID</span>
+                <button onClick={handleCopyId} className="flex items-center gap-1.5 text-xs font-mono font-bold text-gray-700">
+                  {bookingCode}
+                  {copied ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3 text-gray-400" />}
+                </button>
+              </div>
+              <div className="flex items-center gap-1.5 mt-2">
+                <ShieldCheck className="w-3.5 h-3.5 text-green-600" />
+                <span className="text-xs text-green-700 font-medium">Free Booking — no payment required</span>
+              </div>
             </div>
           </motion.div>
 
@@ -225,7 +177,11 @@ export default function BookingConfirmPage() {
             </div>
             <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Booking Confirmed!</h2>
             <p className="text-gray-500 mb-2">Your turf is reserved. Game on!</p>
-            <p className="text-sm font-mono font-bold text-gray-700 mb-6">ID: {bookingRef} <button onClick={handleCopyId}>{copied?<Check className="w-3.5 h-3.5 inline text-green-600"/>:<Copy className="w-3.5 h-3.5 inline text-gray-400"/>}</button></p>
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <ShieldCheck className="w-4 h-4 text-green-600" />
+              <span className="text-sm text-green-700 font-medium">Free Booking — no payment required</span>
+            </div>
+            <p className="text-sm font-mono font-bold text-gray-700 mb-6">ID: {bookingCode} <button onClick={handleCopyId}>{copied?<Check className="w-3.5 h-3.5 inline text-green-600"/>:<Copy className="w-3.5 h-3.5 inline text-gray-400"/>}</button></p>
             <div className="flex flex-col gap-3">
               <Link href="/booking/history" onClick={resetBooking} className="w-full py-3.5 bg-green-600 text-white font-bold rounded-xl text-sm hover:bg-green-700 transition-colors block text-center">View My Bookings</Link>
               <button onClick={handleShare} className="w-full py-3 text-sm font-bold text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
@@ -238,7 +194,7 @@ export default function BookingConfirmPage() {
     );
   }
 
-  // ── PAYMENT SCREEN ──
+  // ── REVIEW & CONFIRM SCREEN (replaces old payment screen) ──
   return (
     <div className="min-h-dvh bg-white">
       {/* MOBILE */}
@@ -248,19 +204,22 @@ export default function BookingConfirmPage() {
           <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center min-h-[44px] min-w-[44px]">
             <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <h1 className="text-lg font-bold text-gray-900">Payment</h1>
+          <h1 className="text-lg font-bold text-gray-900">Confirm Booking</h1>
         </div>
 
-        {/* Total */}
-        <div className="px-4 py-4 border-b border-gray-100">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Total Amount</span>
-            <span className="text-xl font-bold text-gray-900">{formatCurrency(amount)}</span>
+        {/* Free booking banner */}
+        <div className="px-4 py-4">
+          <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-green-600 shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-green-800">Free Booking</p>
+              <p className="text-xs text-green-600">No payment required — just confirm and play!</p>
+            </div>
           </div>
         </div>
 
         {/* Booking summary */}
-        <div className="px-4 py-4 border-b border-gray-100">
+        <div className="px-4 pb-4">
           <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4">
             <h3 className="text-sm font-bold text-gray-900 mb-1">{selectedTurf.name}</h3>
             <p className="text-xs text-gray-500 flex items-center gap-1 mb-2"><MapPin className="w-3 h-3" />{selectedTurf.address}</p>
@@ -273,71 +232,30 @@ export default function BookingConfirmPage() {
           </div>
         </div>
 
-        {/* UPI section */}
-        <div className="px-4 py-4">
-          <h2 className="text-sm font-bold text-gray-900 mb-3">UPI</h2>
-          <div className="space-y-2">
-            {UPI_OPTIONS.map(opt => (
-              <button key={opt.id} onClick={() => setSelectedUPI(opt.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-all min-h-[52px] ${
-                  selectedUPI===opt.id ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'}`}>
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 ${
-                  selectedUPI===opt.id ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
-                  {opt.icon}
-                </div>
-                <span className="text-sm font-medium text-gray-800 flex-1 text-left">{opt.label}</span>
-                <div className={`w-5 h-5 rounded-full border-2 shrink-0 ${
-                  selectedUPI===opt.id ? 'border-green-600 bg-green-600' : 'border-gray-300'}`}>
-                  {selectedUPI===opt.id && <div className="w-full h-full rounded-full flex items-center justify-center">
-                    <div className="w-2 h-2 rounded-full bg-white" />
-                  </div>}
-                </div>
-              </button>
-            ))}
+        {/* Total */}
+        <div className="px-4 py-4 border-t border-gray-100">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">Total Amount</span>
+            <span className="text-xl font-bold text-gray-900">{formatCurrency(amount)}</span>
           </div>
         </div>
 
-        {/* Cards section */}
-        <div className="px-4 pb-4 border-t border-gray-100 pt-4">
-          <h2 className="text-sm font-bold text-gray-900 mb-3">Cards</h2>
-          <button className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border border-dashed border-gray-300 bg-gray-50 min-h-[52px]">
-            <span className="text-2xl">+</span>
-            <span className="text-sm font-medium text-gray-600">Add New Card</span>
-          </button>
-        </div>
-
-        {/* More options */}
-        <div className="px-4 pb-4 border-t border-gray-100 pt-4">
-          <h2 className="text-sm font-bold text-gray-900 mb-3">More Options</h2>
-          <div className="space-y-2">
-            {['Wallets', 'Net Banking'].map(opt => (
-              <button key={opt} className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border border-gray-200 bg-white min-h-[52px]">
-                <span className="text-sm font-medium text-gray-700 flex-1 text-left">{opt}</span>
-                <ChevronLeft className="w-4 h-4 text-gray-400 rotate-180" />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {PAYMENTS_MODE === 'mock' && (
-          <div className="px-4 mb-2">
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700 font-medium">
-              🧪 Demo mode — no real payment processed
+        {error && (
+          <div className="px-4 mb-4">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+              <p className="text-sm text-red-600">{error}</p>
+              {error.includes('pick another') && (
+                <button onClick={() => router.back()} className="mt-2 text-sm font-bold text-red-700 underline">← Go back to slot selection</button>
+              )}
             </div>
           </div>
         )}
 
-        {error && (
-          <div className="px-4 mb-4">
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3"><p className="text-sm text-red-600">{error}</p></div>
-          </div>
-        )}
-
-        {/* Sticky Pay button */}
+        {/* Sticky Confirm button */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 pb-safe pt-3 pb-5 z-40">
-          <button onClick={handlePay} disabled={isProcessing}
+          <button onClick={handleConfirmBooking} disabled={isProcessing}
             className="w-full py-4 bg-green-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-green-600/20 disabled:opacity-50 flex items-center justify-center gap-2 min-h-[56px]">
-            {isProcessing ? <><Loader2 className="w-4 h-4 animate-spin" />Processing...</> : `Pay ${formatCurrency(amount)}`}
+            {isProcessing ? <><Loader2 className="w-4 h-4 animate-spin" />Confirming...</> : 'Confirm Booking'}
           </button>
         </div>
       </div>
@@ -346,11 +264,20 @@ export default function BookingConfirmPage() {
       <div className="hidden md:block min-h-screen bg-gray-50 py-12 px-4">
         <div className="max-w-2xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-1">Complete Payment</h1>
-            <p className="text-sm text-gray-500">Review your booking and choose a payment method</p>
+            <h1 className="text-3xl font-extrabold text-gray-900 mb-1">Confirm Your Booking</h1>
+            <p className="text-sm text-gray-500">Review your booking details and confirm</p>
           </motion.div>
 
           <div className="grid gap-6">
+            {/* Free booking banner */}
+            <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4 flex items-center gap-3">
+              <ShieldCheck className="w-6 h-6 text-green-600 shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-green-800">Free Booking — no payment required</p>
+                <p className="text-xs text-green-600">Just confirm and your slots are reserved!</p>
+              </div>
+            </div>
+
             <div className="pf-card rounded-2xl p-6">
               <h2 className="text-base font-bold text-gray-900 mb-4">Booking Summary</h2>
               <div className="flex justify-between items-start mb-4">
@@ -373,39 +300,24 @@ export default function BookingConfirmPage() {
               </div>
             </div>
 
-            <div className="pf-card rounded-2xl p-6">
-              <h2 className="text-base font-bold text-gray-900 mb-4">UPI Payment</h2>
-              <div className="grid grid-cols-2 gap-3">
-                {UPI_OPTIONS.map(opt => (
-                  <button key={opt.id} onClick={() => setSelectedUPI(opt.id)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${selectedUPI===opt.id?'border-green-500 bg-green-50':'border-gray-200 bg-white hover:border-gray-300'}`}>
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${selectedUPI===opt.id?'bg-green-600 text-white':'bg-gray-100 text-gray-700'}`}>{opt.icon}</div>
-                    <span className="text-sm font-medium text-gray-800">{opt.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            {error && <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <p className="text-sm text-red-600 font-medium">{error}</p>
+              {error.includes('pick another') && (
+                <button onClick={() => router.back()} className="mt-2 text-sm font-bold text-red-700 underline">← Go back to slot selection</button>
+              )}
+            </div>}
 
-            {PAYMENTS_MODE === 'mock' && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 text-sm text-amber-700 font-medium">
-                🧪 Running in demo mode — no real payment will be charged. Set NEXT_PUBLIC_PAYMENTS_MODE=razorpay to enable real payments.
-              </div>
-            )}
-
-            {error && <div className="bg-red-50 border border-red-200 rounded-xl p-4"><p className="text-sm text-red-600 font-medium">{error}</p></div>}
-
-            <button onClick={handlePay} disabled={isProcessing}
+            <button onClick={handleConfirmBooking} disabled={isProcessing}
               className="w-full py-4 bg-green-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-green-600/20 disabled:opacity-50 flex items-center justify-center gap-2 hover:bg-green-700 transition-colors">
-              {isProcessing ? <><Loader2 className="w-5 h-5 animate-spin" />Processing...</> : `Pay ${formatCurrency(amount)}`}
+              {isProcessing ? <><Loader2 className="w-5 h-5 animate-spin" />Confirming...</> : 'Confirm Booking'}
             </button>
             <button onClick={() => router.back()} className="w-full py-3 text-sm font-bold text-gray-500 hover:text-gray-900">← Go Back</button>
           </div>
         </div>
       </div>
 
-      {/* Ticket icon for empty state (keep linter happy) */}
-      <div className="hidden"><Ticket /></div>
-      <AnimatePresence>{/* keep framer-motion import used */}</AnimatePresence>
+      {/* Keep imports used */}
+      <div className="hidden"><Ticket /><AnimatePresence /></div>
     </div>
   );
 }

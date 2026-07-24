@@ -6,8 +6,50 @@ import { motion } from 'framer-motion';
 import { createTurf } from '@/lib/supabase/queries';
 import { useAuthStore } from '@/stores/auth-store';
 import { ALL_SPORTS, ALL_AMENITIES } from '@/lib/utils';
-import { ArrowLeft, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertCircle, Loader2, Upload, X, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
+
+async function uploadToCloudinary(file: File): Promise<string> {
+  // Get signed upload params from our API
+  const signRes = await fetch('/api/cloudinary-sign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ folder: 'playfield/turfs' }),
+  });
+
+  if (!signRes.ok) {
+    throw new Error('Failed to get upload signature');
+  }
+
+  const { signature, timestamp, api_key, cloud_name, folder } = await signRes.json();
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('signature', signature);
+  formData.append('timestamp', String(timestamp));
+  formData.append('api_key', api_key);
+  formData.append('folder', folder);
+
+  const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error('Image upload failed');
+  }
+
+  const data = await uploadRes.json();
+  return data.secure_url;
+}
+
+interface UploadingPhoto {
+  file: File;
+  preview: string;
+  url?: string;
+  uploading: boolean;
+  error?: string;
+}
 
 export default function RegisterTurfPage() {
   const { user } = useAuthStore();
@@ -21,7 +63,10 @@ export default function RegisterTurfPage() {
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [size, setSize] = useState('');
   const [pricePerHour, setPricePerHour] = useState('');
-  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
+  const [openingTime, setOpeningTime] = useState('06:00');
+  const [closingTime, setClosingTime] = useState('23:00');
+  const [slotDuration, setSlotDuration] = useState('60');
+  const [photos, setPhotos] = useState<UploadingPhoto[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -50,15 +95,38 @@ export default function RegisterTurfPage() {
     );
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoBase64(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const newPhotos: UploadingPhoto[] = files.map(file => ({
+      file,
+      preview: URL.createObjectURL(file),
+      uploading: true,
+    }));
+
+    setPhotos(prev => [...prev, ...newPhotos]);
+
+    // Upload each file
+    for (let i = 0; i < newPhotos.length; i++) {
+      try {
+        const url = await uploadToCloudinary(newPhotos[i].file);
+        setPhotos(prev => prev.map(p =>
+          p.preview === newPhotos[i].preview ? { ...p, url, uploading: false } : p
+        ));
+      } catch {
+        setPhotos(prev => prev.map(p =>
+          p.preview === newPhotos[i].preview ? { ...p, uploading: false, error: 'Upload failed' } : p
+        ));
+      }
     }
+
+    // Reset input
+    e.target.value = '';
+  };
+
+  const removePhoto = (preview: string) => {
+    setPhotos(prev => prev.filter(p => p.preview !== preview));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,9 +143,16 @@ export default function RegisterTurfPage() {
       return;
     }
 
+    // Check if any photos are still uploading
+    if (photos.some(p => p.uploading)) {
+      setError('Please wait for all photos to finish uploading.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
+      const photoUrls = photos.filter(p => p.url).map(p => p.url!);
       await createTurf({
         owner_id: user.id,
         name,
@@ -86,9 +161,12 @@ export default function RegisterTurfPage() {
         city,
         sports: selectedSports,
         amenities: selectedAmenities,
-        photos: photoBase64 ? [photoBase64] : [],
+        photos: photoUrls,
         size: size || undefined,
         price_per_hour: Math.round(Number(pricePerHour) * 100), // Convert INR to paise
+        opening_time: openingTime,
+        closing_time: closingTime,
+        slot_duration_minutes: Number(slotDuration),
       });
       setSuccess(true);
     } catch (err: unknown) {
@@ -119,7 +197,7 @@ export default function RegisterTurfPage() {
           <p className="text-gray-500 mt-2">Your turf has been submitted for review.</p>
           <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
             <p className="text-sm text-amber-700 font-semibold">
-              An admin will review and approve your turf listing. It will appear on the platform once approved.
+              An admin will review and approve your turf listing. Slots will be auto-generated once approved.
             </p>
           </div>
           <div className="mt-8 flex flex-col gap-3">
@@ -188,18 +266,79 @@ export default function RegisterTurfPage() {
             </div>
           </div>
 
-          {/* Turf Photo */}
+          {/* Turf Photos — Multi-file Cloudinary Upload */}
           <div className="space-y-4">
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider border-t border-gray-100 pt-6">Turf Photo</h3>
+            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider border-t border-gray-100 pt-6">Turf Photos</h3>
             <div>
-              <label className="block text-xs text-gray-500 font-bold mb-1.5">Upload Image (Optional)</label>
-              <input type="file" accept="image/*" onChange={handleImageChange} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-green-600 file:text-white hover:file:bg-green-700 cursor-pointer" />
-              {photoBase64 && (
-                <div className="mt-4 relative h-48 w-full rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={photoBase64} alt="Turf preview" className="w-full h-full object-cover" />
+              <label className="block text-xs text-gray-500 font-bold mb-1.5">Upload Images (up to 5)</label>
+              {photos.length > 0 && (
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  {photos.map((photo) => (
+                    <div key={photo.preview} className="relative h-28 rounded-xl overflow-hidden border border-gray-200 shadow-sm group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={photo.url || photo.preview} alt="Turf preview" className="w-full h-full object-cover" />
+                      {photo.uploading && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <Loader2 className="w-5 h-5 text-white animate-spin" />
+                        </div>
+                      )}
+                      {photo.error && (
+                        <div className="absolute inset-0 bg-red-500/40 flex items-center justify-center">
+                          <AlertCircle className="w-5 h-5 text-white" />
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(photo.preview)}
+                        className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
+              {photos.length < 5 && (
+                <label className="flex items-center justify-center gap-2 w-full py-8 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-green-400 transition-colors bg-gray-50">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <Upload className="w-5 h-5 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-500">Click to upload photos</span>
+                </label>
+              )}
+              <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                <ImageIcon className="w-3 h-3" />
+                {photos.length}/5 photos uploaded. JPG, PNG, WebP supported.
+              </p>
+            </div>
+          </div>
+
+          {/* Operating Hours */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider border-t border-gray-100 pt-6">Operating Hours</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs text-gray-500 font-bold mb-1.5">Opens At</label>
+                <input type="time" value={openingTime} onChange={(e) => setOpeningTime(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:outline-none focus:border-green-400 focus:ring-1 focus:ring-green-400" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 font-bold mb-1.5">Closes At</label>
+                <input type="time" value={closingTime} onChange={(e) => setClosingTime(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:outline-none focus:border-green-400 focus:ring-1 focus:ring-green-400" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 font-bold mb-1.5">Slot Duration</label>
+                <select value={slotDuration} onChange={(e) => setSlotDuration(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:outline-none focus:border-green-400 focus:ring-1 focus:ring-green-400">
+                  <option value="30">30 min</option>
+                  <option value="60">1 hour</option>
+                  <option value="90">1.5 hours</option>
+                  <option value="120">2 hours</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -247,7 +386,7 @@ export default function RegisterTurfPage() {
           {/* Info box */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-6">
             <p className="text-sm text-amber-700 font-semibold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4" /> Your turf will be submitted for admin review. It will only appear on the platform after approval.
+              <AlertCircle className="w-4 h-4" /> Your turf will be submitted for admin review. Slots will be auto-generated once approved based on your operating hours.
             </p>
           </div>
 

@@ -5,12 +5,12 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
-  title: 'PlayField — Book. Play. Enjoy.',
+  title: 'PlayField - Book. Play. Enjoy.',
   description:
     'Discover, filter, and book the best sports turfs near you in real-time. Football, cricket, badminton and more. Turf booking made easy!',
   keywords: ['turf booking', 'sports turf', 'football turf', 'cricket ground', 'book turf online', 'PlayField'],
   openGraph: {
-    title: 'PlayField — Book. Play. Enjoy.',
+    title: 'PlayField - Book. Play. Enjoy.',
     description: 'Discover, filter, and book the best sports turfs near you in real-time.',
     type: 'website',
   },
