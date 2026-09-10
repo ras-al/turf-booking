@@ -225,15 +225,20 @@ export async function bookSlots(params: {
   return data as unknown as Booking;
 }
 
-/** Cancel a booking via the cancel_booking RPC */
+/** Cancel a booking via /api/bookings/cancel (refunds & releases slots) */
 export async function cancelBooking(bookingId: string, userId: string): Promise<Booking> {
-  const { data, error } = await supabase.rpc('cancel_booking', {
-    p_booking_id: bookingId,
-    p_user_id: userId,
+  const res = await fetch('/api/bookings/cancel', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bookingId, userId }),
   });
 
-  if (error) throw error;
-  return data as unknown as Booking;
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to cancel booking');
+  }
+
+  return data.booking as Booking;
 }
 
 /** Fetch bookings for a user */

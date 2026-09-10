@@ -10,6 +10,7 @@ export interface Profile {
   avatar_url: string | null;
   role: UserRole;
   referral_code: string | null;
+  razorpay_account_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -42,7 +43,7 @@ export interface Turf {
   owner?: Profile;
 }
 
-export type SlotStatus = 'available' | 'booked' | 'blocked';
+export type SlotStatus = 'available' | 'pending' | 'booked' | 'blocked';
 
 export interface Slot {
   id: string;
@@ -54,7 +55,7 @@ export interface Slot {
   created_at: string;
 }
 
-export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
+export type BookingStatus = 'pending' | 'pending_payment' | 'confirmed' | 'cancelled' | 'completed' | 'expired';
 export type PaymentStatus = 'free' | 'unpaid' | 'paid' | 'refunded';
 
 export interface Booking {
@@ -67,6 +68,7 @@ export interface Booking {
   total_amount: number; // in paise
   booking_code: string | null;
   notes: string | null;
+  hold_expires_at?: string | null;
   created_at: string;
   updated_at: string;
   // Joined

@@ -7,7 +7,7 @@ import { formatCurrency, formatTime, SPORT_ICONS } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import type { Turf, Booking, Slot } from '@/types';
 import Link from 'next/link';
-import { Calendar, BarChart3, IndianRupee, Star, Plus, Loader2, MapPin, Clock, Users } from 'lucide-react';
+import { Calendar, BarChart3, IndianRupee, Star, Plus, Loader2, MapPin, Clock, Users, CreditCard } from 'lucide-react';
 
 const TABS = ['Overview', 'Bookings', 'Slots', 'My Turfs'] as const;
 
@@ -69,14 +69,19 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-5">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-extrabold text-gray-900">Owner Dashboard</h1>
               <p className="text-sm text-gray-500 mt-0.5">Welcome back, {user?.full_name || 'Owner'}</p>
             </div>
-            <Link href="/dashboard/register-turf" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm">
-              <Plus className="w-4 h-4" /> Register New Turf
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href="/dashboard/payouts" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+                <CreditCard className="w-4 h-4 text-green-600" /> Payout Settings
+              </Link>
+              <Link href="/dashboard/register-turf" className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm">
+                <Plus className="w-4 h-4" /> Register New Turf
+              </Link>
+            </div>
           </div>
           <div className="flex gap-1 mt-4 overflow-x-auto">
             {TABS.map((tab) => (

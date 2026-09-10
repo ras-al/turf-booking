@@ -30,6 +30,16 @@ export const useAuthStore = create<AuthState>((set) => ({
       } else {
         set({ user: null, isLoading: false });
       }
+
+      // Listen for auth state changes (e.g. magic link click or signin)
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session?.user) {
+          const profile = await fetchProfile(session.user.id);
+          set({ user: profile, isLoading: false });
+        } else {
+          set({ user: null, isLoading: false });
+        }
+      });
     } catch {
       set({ user: null, isLoading: false });
     }
