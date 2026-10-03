@@ -109,11 +109,11 @@ export default function TurfDetailPage() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={photos[photoIdx]} alt={turf.name} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-green-900 to-green-700 flex items-center justify-center">
+            <div className="w-full h-full bg-emerald-950 flex items-center justify-center">
               <div className="w-20 h-20 opacity-20">{SPORT_ICONS[turf.sports[0]] || <MapPin className="w-20 h-20 text-white" />}</div>
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-black/20 pointer-events-none" />
 
           {/* Top nav */}
           <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-14 pb-4">
@@ -310,11 +310,11 @@ export default function TurfDetailPage() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={photos[photoIdx]} alt={turf.name} className="absolute inset-0 w-full h-full object-cover" />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-green-50 flex items-center justify-center opacity-30">
+            <div className="absolute inset-0 bg-emerald-50 flex items-center justify-center opacity-30">
               {SPORT_ICONS[turf.sports[0]] || <MapPin className="w-64 h-64" />}
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className="absolute inset-0 bg-black/40" />
           <div className="absolute bottom-6 left-0 right-0 max-w-6xl mx-auto px-4">
             <div className="flex items-end justify-between">
               <div>

@@ -45,7 +45,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-white">
       {/* MOBILE */}
       <div className="md:hidden">
-        <div className="bg-gradient-to-br from-green-600 via-green-500 to-green-400 px-5 pt-8 pb-8 rounded-b-3xl">
+        <div className="bg-emerald-600 px-5 pt-8 pb-8 rounded-b-3xl">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-white/20 border-2 border-white flex items-center justify-center text-white text-2xl font-bold">
               {user.full_name.charAt(0).toUpperCase()}

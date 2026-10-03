@@ -19,11 +19,7 @@ export default function TournamentsPage() {
   return (
     <div className="min-h-dvh bg-white">
       {/* ── Hero Banner ── */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#02180d] via-[#052e1a] to-[#011409] text-white py-14 sm:py-20 md:py-24 px-4 sm:px-6 lg:px-8">
-        {/* Ambient Turf Glow ("Full Pacha") */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] sm:w-[500px] h-[320px] sm:h-[500px] bg-emerald-500/20 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute top-0 right-1/4 w-60 sm:w-80 h-60 sm:h-80 bg-lime-400/10 rounded-full blur-[90px] pointer-events-none" />
-
+      <section className="relative overflow-hidden bg-[#061e12] text-white py-14 sm:py-20 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="relative max-w-4xl mx-auto text-center z-10">
           {/* Logo Badge in Hero */}
           <motion.div 
@@ -43,7 +39,7 @@ export default function TournamentsPage() {
           <motion.div 
             initial={{ opacity: 0, y: -10 }} 
             animate={{ opacity: 1, y: 0 }} 
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-bold uppercase tracking-widest mb-6 backdrop-blur-md shadow-lg"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 text-xs font-bold uppercase tracking-widest mb-6 shadow-sm"
           >
             <Trophy className="w-3.5 h-3.5 text-emerald-400" />
             <span>Tournaments &bull; Coming Soon</span>
@@ -56,7 +52,7 @@ export default function TournamentsPage() {
             transition={{ delay: 0.1 }}
             className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white leading-tight font-sans"
           >
-            The Ultimate Turf Leagues Are Coming to <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-lime-300">KiKKO</span>
+            The Ultimate Turf Leagues Are Coming to <span className="text-emerald-400">KiKKO</span>
           </motion.h1>
 
           {/* Tagline */}

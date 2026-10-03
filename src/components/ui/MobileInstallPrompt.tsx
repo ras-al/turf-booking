@@ -99,11 +99,8 @@ export default function MobileInstallPrompt() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 26, stiffness: 280 }}
-            className="relative w-full max-w-md bg-gradient-to-b from-[#042413] via-[#031c0e] to-[#02140a] text-white rounded-t-3xl sm:rounded-3xl border-t sm:border border-emerald-500/30 shadow-2xl p-6 overflow-hidden z-10"
+            className="relative w-full max-w-md bg-[#0a1510] text-white rounded-t-3xl sm:rounded-3xl border-t sm:border border-emerald-800/40 shadow-2xl p-6 overflow-hidden z-10"
           >
-            {/* Ambient Background Glow */}
-            <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-48 h-48 bg-emerald-500/25 rounded-full blur-3xl pointer-events-none" />
-
             {/* Close Button */}
             <button
               onClick={handleDismiss}
@@ -196,7 +193,7 @@ export default function MobileInstallPrompt() {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleInstallClick}
-                className="flex-1 py-3.5 px-4 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2 active:scale-98 transition-all"
+                className="flex-1 py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 active:scale-98 transition-all"
               >
                 <Smartphone className="w-4 h-4" />
                 <span>{isIOS && !showIOSGuide ? 'Add to Home Screen' : 'Install App'}</span>

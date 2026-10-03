@@ -206,7 +206,7 @@ export default function Navbar() {
                   >
                     <span>{link.label}</span>
                     {link.badge && (
-                      <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide bg-gradient-to-r from-emerald-600 to-green-500 text-white rounded-full shadow-xs animate-pulse">
+                      <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide bg-emerald-600 text-white rounded-full shadow-xs">
                         {link.badge}
                       </span>
                     )}

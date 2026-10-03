@@ -249,7 +249,7 @@ export default function HomePage() {
             <div className="absolute inset-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/landing-hero.png" alt="Turf" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/20" />
+              <div className="absolute inset-0 bg-black/65" />
             </div>
 
             <div className="relative z-10 p-5">
@@ -267,7 +267,7 @@ export default function HomePage() {
         <div className="px-4 mb-5">
           <Link 
             href="/tournaments" 
-            className="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-[#032011] via-[#07361d] to-[#042413] text-white shadow-md border border-emerald-600/40 group active:scale-[0.99] transition-transform"
+            className="flex items-center justify-between p-3.5 rounded-2xl bg-[#032011] text-white shadow-sm border border-emerald-700/60 group active:scale-[0.99] transition-transform"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 backdrop-blur-xs text-emerald-400 border border-white/10">
@@ -346,7 +346,7 @@ export default function HomePage() {
             {/* Left — Prominent KiKKO Brand & Features */}
             <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
               {/* KiKKO Main Brand & Quote */}
-              <div className="inline-flex items-center gap-4 p-2.5 pr-6 rounded-3xl bg-gradient-to-r from-emerald-500/15 via-green-500/10 to-transparent border border-emerald-500/25 mb-8 shadow-xs">
+              <div className="inline-flex items-center gap-4 p-2.5 pr-6 rounded-3xl bg-emerald-50 border border-emerald-200 mb-8 shadow-xs">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src="/logo.png" 
@@ -365,7 +365,7 @@ export default function HomePage() {
 
               <h2 className="text-4xl lg:text-5xl xl:text-6xl font-black text-gray-900 leading-[1.1] mb-8 font-sans">
                 FIND. BOOK. PLAY.<br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-600">Turf Booking Made Easy</span>
+                <span className="text-emerald-600">Turf Booking Made Easy</span>
               </h2>
 
               <div className="space-y-4 mb-10">
