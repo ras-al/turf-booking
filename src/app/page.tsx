@@ -134,7 +134,7 @@ export default function HomePage() {
     setLocationStatus('requesting');
     try {
       const coords = await requestCoordinates();
-      const detectedCity = await reverseGeocode(coords.latitude, coords.longitude);
+      const detectedCity = coords.city || (await reverseGeocode(coords.latitude, coords.longitude));
       setUserLocation([coords.latitude, coords.longitude], detectedCity);
     } catch (err: any) {
       console.warn('Location permission skipped or denied:', err?.message);

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
 import { useFilterStore } from '@/stores/filter-store';
-import { requestCoordinates, reverseGeocode } from '@/lib/location';
+import { requestCoordinates, reverseGeocode, searchLocationSuggestions, type LocationSuggestion } from '@/lib/location';
 import { Home, Search, Calendar, User, LogIn, LogOut, LayoutDashboard, Shield, Heart, Bell, MapPin, X, Crosshair, Loader2, Trophy } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,6 +21,8 @@ export default function Navbar() {
   const [tempCity, setTempCity] = useState('');
   const [isLocating, setIsLocating] = useState(false);
   const [cities, setCities] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
 
   // Notification state
   const [showNotifications, setShowNotifications] = useState(false);
@@ -34,6 +36,26 @@ export default function Navbar() {
   useEffect(() => {
     fetchDistinctCities().then(setCities).catch(() => {});
   }, []);
+
+  // Debounced search for location suggestions as user types keys
+  useEffect(() => {
+    if (!showLocationModal) return;
+    let active = true;
+    setIsSearchingLocation(true);
+    const timer = setTimeout(() => {
+      searchLocationSuggestions(tempCity).then((res) => {
+        if (active) {
+          setSuggestions(res);
+          setIsSearchingLocation(false);
+        }
+      });
+    }, 120);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [tempCity, showLocationModal]);
 
   // Load unread count
   useEffect(() => {
@@ -76,12 +98,19 @@ export default function Navbar() {
     }
   }, [userCoords]);
 
+  const handleSelectSuggestion = (loc: LocationSuggestion) => {
+    setFilter('city', loc.city);
+    setUserLocation([loc.latitude, loc.longitude], loc.city);
+    setTempCity(loc.city);
+    setShowLocationModal(false);
+  };
+
   const handleGetLocation = async () => {
     setIsLocating(true);
     setLocationStatus('requesting');
     try {
       const coords = await requestCoordinates();
-      const detectedCity = await reverseGeocode(coords.latitude, coords.longitude);
+      const detectedCity = coords.city || (await reverseGeocode(coords.latitude, coords.longitude));
       setUserLocation([coords.latitude, coords.longitude], detectedCity);
       setFilter('city', detectedCity);
       setTempCity(detectedCity);
@@ -428,86 +457,126 @@ export default function Navbar() {
           ═══════════════════════════════════════ */}
       <AnimatePresence>
         {showLocationModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }} 
               animate={{ opacity: 1, scale: 1 }} 
               exit={{ opacity: 0, scale: 0.95 }} 
-              className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
+              className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
             >
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="font-bold text-gray-900 text-lg">Select Location</h3>
+              {/* Modal Header */}
+              <div className="p-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-emerald-600" />
+                  <h3 className="font-bold text-gray-900 text-lg">Select Location</h3>
+                </div>
                 <button 
                   onClick={() => setShowLocationModal(false)}
-                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center active:scale-95"
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center active:scale-95 transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4 text-gray-600" />
                 </button>
               </div>
-              <div className="p-5 space-y-5">
+
+              <div className="p-4 space-y-4 overflow-y-auto flex-1">
+                {/* Search Input with instant suggestions */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">City</label>
-                  <input 
-                    type="text" 
-                    placeholder="E.g. Mumbai, Delhi..." 
-                    value={tempCity} 
-                    onChange={e => setTempCity(e.target.value)} 
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        setFilter('city', tempCity.trim() || undefined);
-                        setShowLocationModal(false);
-                      }
-                    }}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-green-400"
-                  autoFocus
-                />
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">
+                    Type City, Town or Area
+                  </label>
+                  <div className="relative flex items-center">
+                    <Search className="w-4 h-4 text-gray-400 absolute left-3.5 pointer-events-none" />
+                    <input 
+                      type="text" 
+                      placeholder="Type city or area name..." 
+                      value={tempCity} 
+                      onChange={e => setTempCity(e.target.value)} 
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          if (suggestions.length > 0) {
+                            handleSelectSuggestion(suggestions[0]);
+                          } else if (tempCity.trim()) {
+                            setFilter('city', tempCity.trim());
+                            setShowLocationModal(false);
+                          }
+                        }
+                      }}
+                      className="w-full pl-10 pr-9 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all"
+                      autoFocus
+                    />
+                    {tempCity && (
+                      <button 
+                        onClick={() => setTempCity('')}
+                        className="absolute right-3 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {/* City quick-pick buttons */}
-                {cities.length > 0 && (
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Popular Cities</label>
-                    <div className="flex flex-wrap gap-2">
-                      {cities.slice(0, 8).map(city => (
-                        <button
-                          key={city}
-                          onClick={() => {
-                            setFilter('city', city);
-                            setUserLocation(null, city);
-                            setTempCity(city);
-                            setShowLocationModal(false);
-                          }}
-                          className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors ${
-                            tempCity === city
-                              ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                              : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300'
-                          }`}
-                        >
-                          {city}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
+                {/* Use Current Device Location Button */}
                 <button 
                   onClick={handleGetLocation}
                   disabled={isLocating}
-                  className="mt-3 flex items-center gap-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700 disabled:opacity-50 cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-2xs"
                 >
-                  {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crosshair className="w-4 h-4" />}
-                  {isLocating ? 'Detecting current coordinates...' : 'Use Current Location'}
+                  {isLocating ? <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" /> : <Crosshair className="w-3.5 h-3.5 text-emerald-600" />}
+                  <span>{isLocating ? 'Detecting current coordinates...' : 'Use Current Device Location'}</span>
                 </button>
+
+                {/* Location Suggestions as User Types */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                      {tempCity.trim() ? 'Matching Locations' : 'Popular Sports Cities'}
+                    </label>
+                    {isSearchingLocation && <Loader2 className="w-3 h-3 text-emerald-600 animate-spin" />}
+                  </div>
+
+                  <div className="space-y-1 divide-y divide-gray-100 border border-gray-100 rounded-xl bg-gray-50/50 p-1 max-h-52 overflow-y-auto">
+                    {suggestions.length === 0 ? (
+                      <div className="p-3 text-center text-xs text-gray-400">
+                        {isSearchingLocation ? 'Searching locations...' : `No matching location. Press Enter to use "${tempCity}".`}
+                      </div>
+                    ) : (
+                      suggestions.map((loc) => (
+                        <button
+                          key={loc.id}
+                          onClick={() => handleSelectSuggestion(loc)}
+                          className="w-full flex items-center justify-between p-2 hover:bg-emerald-50 rounded-lg text-left transition-colors cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0 group-hover:scale-110 transition-transform" />
+                            <div className="truncate">
+                              <span className="text-xs font-bold text-gray-900 block truncate">{loc.name}</span>
+                              <span className="text-[10px] text-gray-500 block truncate">{loc.state}</span>
+                            </div>
+                          </div>
+                          <span className="text-[11px] text-emerald-700 font-bold shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            Select →
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="px-5 pb-5">
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-gray-100 shrink-0">
                 <button 
                   onClick={() => { 
                     const chosen = tempCity.trim();
-                    setFilter('city', chosen || undefined); 
-                    setUserLocation(userCoords, chosen || null);
-                    setShowLocationModal(false); 
+                    if (suggestions.length > 0 && (!chosen || chosen.toLowerCase() === suggestions[0].name.toLowerCase())) {
+                      handleSelectSuggestion(suggestions[0]);
+                    } else {
+                      setFilter('city', chosen || undefined); 
+                      setUserLocation(userCoords, chosen || null);
+                      setShowLocationModal(false); 
+                    }
                   }} 
-                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm active:scale-[0.98] transition-transform cursor-pointer"
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm active:scale-[0.98] transition-transform cursor-pointer"
                 >
                   Save Location
                 </button>
