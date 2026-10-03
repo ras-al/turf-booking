@@ -76,7 +76,7 @@ export default function TurfDetailPage() {
   const handleShare = useCallback(async () => {
     const url = window.location.href;
     if (navigator.share) {
-      try { await navigator.share({ title: turf?.name, text: `Check out ${turf?.name} on PlayField!`, url }); }
+      try { await navigator.share({ title: turf?.name, text: `Check out ${turf?.name} on KiKKO! FIND. BOOK. PLAY.`, url }); }
       catch { /* dismissed */ }
     } else {
       await navigator.clipboard.writeText(url);

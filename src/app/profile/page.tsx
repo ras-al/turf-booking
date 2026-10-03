@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth-store';
 import {
-  Calendar, Heart, Users, HelpCircle, Settings,
+  Calendar, Heart, Trophy, HelpCircle, Settings,
   LogOut, ChevronRight
 } from 'lucide-react';
 
@@ -35,8 +35,8 @@ export default function ProfilePage() {
 
   const menuItems = [
     { label: 'My Bookings', icon: Calendar, href: '/booking/history' },
+    { label: 'Tournaments', icon: Trophy, href: '/tournaments', badge: 'Soon' },
     { label: 'Favorites', icon: Heart, href: '/favorites' },
-    { label: 'Invite Friends', icon: Users, href: '/invite', badge: 'Get ₹200' },
     { label: 'Help & Support', icon: HelpCircle, href: '/help' },
     { label: 'Settings', icon: Settings, href: '/settings' },
   ];

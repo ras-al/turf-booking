@@ -197,7 +197,7 @@ export default function SettingsPage() {
         </section>
         
         <p className="text-center text-xs text-gray-400 mt-8">
-          PlayField v1.0.0 (Production)
+          KiKKO v1.0.0 (Production) &bull; FIND. BOOK. PLAY.
         </p>
 
       </div>

@@ -239,15 +239,21 @@ function AuthContent() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full border-2 border-green-600 flex items-center justify-center bg-green-50">
-              <span className="text-green-700 font-bold text-lg">P</span>
-            </div>
-            <span className="text-2xl font-extrabold text-gray-900">
-              PLAY<span className="text-green-600">FIELD</span>
-            </span>
+          <Link href="/" className="inline-flex flex-col items-center group">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src="/logo.png" 
+              alt="KiKKO" 
+              className="w-18 h-18 sm:w-20 sm:h-20 object-contain drop-shadow-xl group-hover:scale-105 transition-transform" 
+            />
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 mt-3 font-sans">
+              Ki<span className="text-emerald-600">KKO</span>
+            </h1>
+            <p className="text-[10px] sm:text-[11px] font-extrabold tracking-widest text-emerald-600 uppercase mt-0.5">
+              FIND &bull; BOOK &bull; PLAY
+            </p>
           </Link>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="text-sm text-gray-500 mt-4">
             {step === 'otp'
               ? 'Enter the 6-digit code sent to your email'
               : mode === 'login'

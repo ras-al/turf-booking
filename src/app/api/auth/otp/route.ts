@@ -37,8 +37,8 @@ export async function POST(req: NextRequest) {
 
     console.log('\n╔══════════════════════════════════════════════════════════╗');
     console.log(`║ [PLAYFIELD AUTH] User: ${cleanEmail}`);
-    console.log(`║ 🔑 OTP Code: ${otp}`);
-    console.log(`║ 🔗 Link: ${actionLink}`);
+    console.log(`║ OTP Code: ${otp}`);
+    console.log(`║ Link: ${actionLink}`);
     console.log('╚══════════════════════════════════════════════════════════╝\n');
 
     return NextResponse.json({

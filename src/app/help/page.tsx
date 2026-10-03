@@ -15,8 +15,8 @@ const FAQS = [
     a: "Refunds are processed immediately but may take 3-5 business days to reflect in your original payment method."
   },
   {
-    q: "How does the referral program work?",
-    a: "Share your invite code with friends. When they sign up and complete their first booking, both of you will receive ₹200 off your next booking."
+    q: "How do KiKKO Tournaments work?",
+    a: "KiKKO Tournaments allow local teams and players to compete in organized football, box cricket, and badminton leagues with verified scorekeeping and awards."
   },
   {
     q: "What happens if it rains?",
@@ -44,13 +44,13 @@ export default function HelpPage() {
         <section>
           <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 px-1">Contact Us</h2>
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-            <a href="mailto:support@playfield.app" className="flex items-center gap-4 p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+            <a href="mailto:support@kikko.app" className="flex items-center gap-4 p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors">
               <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center shrink-0">
                 <Mail className="w-5 h-5 text-green-600" />
               </div>
               <div>
                 <h3 className="text-base font-semibold text-gray-900">Email Support</h3>
-                <p className="text-sm text-gray-500">support@playfield.app</p>
+                <p className="text-sm text-gray-500">support@kikko.app</p>
               </div>
             </a>
             <a href="tel:+919876543210" className="flex items-center gap-4 p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors">

@@ -106,14 +106,29 @@ export default function HomePage() {
   const [topTurfs, setTopTurfs] = useState<Turf[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(false);
+
+  useEffect(() => {
+    // Only show intro splash once per browser session; clicking home never shows it again
+    try {
+      const hasSeenIntro = sessionStorage.getItem('kikko_intro_seen');
+      if (!hasSeenIntro) {
+        setShowIntro(true);
+      }
+    } catch {
+      // In case sessionStorage is blocked
+      setShowIntro(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchTopTurfs(6).then((data) => { setTopTurfs(data); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
   const handleIntroComplete = () => {
-    sessionStorage.setItem('pf_intro_seen', 'true');
+    try {
+      sessionStorage.setItem('kikko_intro_seen', 'true');
+    } catch { /* ignore */ }
     setShowIntro(false);
   };
 
@@ -135,7 +150,7 @@ export default function HomePage() {
       <FilterSheet open={filterOpen} onClose={() => setFilterOpen(false)} />
 
       {/* ═══════════════════════════════════════════════
-          MOBILE VIEW — PlayField Light Theme
+          MOBILE VIEW — KiKKO Turf Booking
           ═══════════════════════════════════════════════ */}
       <div className="md:hidden">
         {/* Search Bar */}
@@ -163,7 +178,7 @@ export default function HomePage() {
         </div>
 
         {/* Hero Banner */}
-        <div className="px-4 mb-5">
+        <div className="px-4 mb-4">
           <div className="relative rounded-2xl overflow-hidden bg-gray-900 min-h-[170px]">
             {/* Background Image */}
             <div className="absolute inset-0">
@@ -173,13 +188,36 @@ export default function HomePage() {
             </div>
 
             <div className="relative z-10 p-5">
-              <h2 className="text-[22px] font-extrabold text-white leading-tight">Ready to Play?</h2>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">FIND. BOOK. PLAY.</span>
+              <h2 className="text-[22px] font-extrabold text-white leading-tight mt-0.5">Ready to Play?</h2>
               <p className="text-sm text-gray-200 mt-1.5 leading-snug font-medium">Book your favorite turf<br />in seconds</p>
-              <Link href="/turfs" className="mt-5 inline-flex items-center gap-1.5 px-5 py-2.5 bg-green-600 text-white text-sm font-bold rounded-xl shadow-sm min-h-[44px]">
+              <Link href="/turfs" className="mt-4 inline-flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-xl shadow-sm min-h-[44px]">
                 Book Now <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
               </Link>
             </div>
           </div>
+        </div>
+
+        {/* Tournaments Teaser Banner (Mobile) - No Emojis, Responsive */}
+        <div className="px-4 mb-5">
+          <Link 
+            href="/tournaments" 
+            className="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-[#032011] via-[#07361d] to-[#042413] text-white shadow-md border border-emerald-600/40 group active:scale-[0.99] transition-transform"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 backdrop-blur-xs text-emerald-400 border border-white/10">
+                <Trophy className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black tracking-wide text-white">KiKKO Tournaments</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-400 text-emerald-950">Coming Soon</span>
+                </div>
+                <span className="text-[11px] text-emerald-200/90 font-medium">Football, Cricket &amp; Badminton Leagues</span>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-emerald-300 group-hover:translate-x-0.5 transition-transform shrink-0" />
+          </Link>
         </div>
 
         {/* Popular Turfs */}
@@ -197,19 +235,6 @@ export default function HomePage() {
             <div>{topTurfs.slice(0, 4).map((turf) => <TurfItem key={turf.id} turf={turf} />)}</div>
           )}
         </div>
-
-        {/* Referral Banner */}
-        <div className="px-4 mb-6">
-          <div className="bg-green-600 rounded-2xl px-5 py-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-white/90 leading-tight">Invite your friends &amp; get</p>
-              <p className="text-lg font-extrabold text-white leading-tight mt-0.5">₹200 OFF</p>
-            </div>
-            <Link href="/invite" className="px-6 py-2.5 bg-white text-green-700 text-sm font-bold rounded-xl shadow-sm min-h-[44px] flex items-center">
-              Invite
-            </Link>
-          </div>
-        </div>
       </div>
 
       {/* ═══════════════════════════════════════════════
@@ -217,22 +242,31 @@ export default function HomePage() {
           ═══════════════════════════════════════════════ */}
       <div className="hidden md:block">
         {/* Hero Section */}
-        <section className="min-h-[85vh] flex items-center bg-white">
-          <div className="max-w-7xl mx-auto px-8 w-full grid grid-cols-2 gap-16 items-center">
-            {/* Left — Branding & Features */}
+        <section className="min-h-[85vh] flex items-center bg-white py-12">
+          <div className="max-w-7xl mx-auto px-6 sm:px-8 w-full grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* Left — Prominent KiKKO Brand & Features */}
             <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-14 h-14 rounded-full border-[2.5px] border-green-600 flex items-center justify-center bg-green-50">
-                  <span className="text-green-700 font-bold text-2xl">P</span>
-                </div>
-                <div>
-                  <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">PLAYFIELD</h1>
-                  <p className="text-sm text-gray-500 -mt-0.5">Book. Play. Enjoy.</p>
+              {/* KiKKO Main Brand & Quote */}
+              <div className="inline-flex items-center gap-4 p-2.5 pr-6 rounded-3xl bg-gradient-to-r from-emerald-500/15 via-green-500/10 to-transparent border border-emerald-500/25 mb-8 shadow-xs">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src="/logo.png" 
+                  alt="KiKKO" 
+                  className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-xl"
+                />
+                <div className="flex flex-col">
+                  <span className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none font-sans">
+                    Ki<span className="text-emerald-600">KKO</span>
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold tracking-[0.2em] text-emerald-700 uppercase mt-1">
+                    FIND &bull; BOOK &bull; PLAY
+                  </span>
                 </div>
               </div>
 
-              <h2 className="text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.1] mb-8">
-                Turf Booking<br />Made Easy
+              <h2 className="text-4xl lg:text-5xl xl:text-6xl font-black text-gray-900 leading-[1.1] mb-8 font-sans">
+                FIND. BOOK. PLAY.<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-600">Turf Booking Made Easy</span>
               </h2>
 
               <div className="space-y-4 mb-10">
@@ -332,13 +366,13 @@ export default function HomePage() {
         </section>
 
         {/* CTA Banner */}
-        <section className="py-20 px-4 bg-green-600">
+        <section className="py-20 px-4 bg-emerald-600">
           <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="max-w-4xl mx-auto text-center">
             <h2 className="text-4xl lg:text-5xl font-extrabold text-white mb-4">Own a Turf?</h2>
-            <p className="text-lg text-white/80 max-w-2xl mx-auto mb-8">List your turf on PlayField and reach thousands of players. Manage slots, track earnings, and grow your business.</p>
+            <p className="text-lg text-white/80 max-w-2xl mx-auto mb-8">List your turf on KiKKO and reach thousands of players. Manage slots, track earnings, and grow your business.</p>
             <div className="flex gap-4 justify-center">
-              <Link href="/auth?role=owner" className="px-8 py-4 bg-white text-green-700 font-bold rounded-xl shadow-lg text-sm hover:bg-gray-50 transition-colors">Register as Owner</Link>
-              <Link href="/turfs" className="px-8 py-4 bg-green-700 text-white font-bold rounded-xl text-sm hover:bg-green-800 transition-colors border border-green-500">Explore Turfs</Link>
+              <Link href="/auth?role=owner" className="px-8 py-4 bg-white text-emerald-800 font-bold rounded-xl shadow-lg text-sm hover:bg-gray-50 transition-colors">Register as Owner</Link>
+              <Link href="/turfs" className="px-8 py-4 bg-emerald-700 text-white font-bold rounded-xl text-sm hover:bg-emerald-800 transition-colors border border-emerald-500">Explore Turfs</Link>
             </div>
           </motion.div>
         </section>

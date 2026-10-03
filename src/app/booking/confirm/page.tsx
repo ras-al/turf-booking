@@ -213,7 +213,7 @@ export default function BookingConfirmPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: orderData.amount,
         currency: 'INR',
-        name: 'PlayField',
+        name: 'KiKKO',
         description: `Booking for ${selectedTurf.name}`,
         order_id: orderData.orderId,
         prefill: {
@@ -266,11 +266,10 @@ export default function BookingConfirmPage() {
   const handleShare = async () => {
     const slotSummary = selectedSlots
       .map((s) => `${formatDate(s.date)} ${formatTime(s.start_time)}–${formatTime(s.end_time)}`)
-      .join(', ');
-    const text = `I just booked ${selectedTurf.name} on PlayField!\n📅 ${slotSummary}\n🎫 Booking: ${bookingCode}\nBook your turf at ${window.location.origin}`;
+    const text = `I just booked ${selectedTurf.name} on KiKKO!\nDate: ${slotSummary}\nBooking Code: ${bookingCode}\nFIND. BOOK. PLAY. at ${window.location.origin}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'PlayField Booking', text, url: window.location.origin });
+        await navigator.share({ title: 'KiKKO Booking', text, url: window.location.origin });
       } catch {
         /* dismissed */
       }
