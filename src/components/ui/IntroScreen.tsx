@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion';
 import { useEffect } from 'react';
-import { Activity, Zap, Wind, Trophy } from 'lucide-react';
 
 export default function IntroScreen({ 
   onComplete, 
@@ -12,16 +11,16 @@ export default function IntroScreen({
   isLoading: boolean; 
 }) {
   useEffect(() => {
-    // Fast, native-feeling splash duration (like YouTube/Instagram app open: ~1.2s)
+    // Fast, native-feeling splash duration (~1.0s like modern native iOS/Android apps)
     const minTimer = setTimeout(() => {
       if (!isLoading) {
         onComplete();
       }
-    }, 1200);
+    }, 1000);
 
     const maxTimer = setTimeout(() => {
       onComplete();
-    }, 2000);
+    }, 1800);
 
     return () => {
       clearTimeout(minTimer);
@@ -33,121 +32,58 @@ export default function IntroScreen({
     <motion.div
       initial={{ opacity: 1 }}
       exit={{ 
-        opacity: 0, 
-        scale: 1.08, 
-        filter: 'blur(10px)',
-        transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } 
+        opacity: 0,
+        transition: { duration: 0.3, ease: 'easeInOut' } 
       }}
-      className="fixed inset-0 z-[100] flex flex-col justify-between items-center overflow-hidden bg-gradient-to-b from-[#02180d] via-[#052e1a] to-[#011409] select-none pointer-events-auto px-4"
+      className="fixed inset-0 z-[100] flex flex-col justify-between items-center bg-[#090e0c] select-none pointer-events-auto px-6 py-12"
     >
-      {/* Ambient turf glow ("full pacha") */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[420px] md:w-[500px] h-[300px] sm:h-[420px] md:h-[500px] bg-emerald-500/20 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-60 h-60 bg-lime-400/10 rounded-full blur-[80px] pointer-events-none" />
-
       {/* Top spacer */}
-      <div className="h-10 sm:h-16 md:h-20" />
+      <div className="h-8" />
 
-      {/* Center Stage: High-visibility KiKKO Logo */}
-      <div className="relative flex flex-col items-center justify-center z-10 w-full max-w-sm text-center">
-        {/* Pulsing ambient halo */}
+      {/* Center Stage: Professional, Clean KiKKO Launch (No AI gradient blobs) */}
+      <div className="flex flex-col items-center justify-center text-center">
         <motion.div
-          animate={{ 
-            scale: [1, 1.1, 1],
-            opacity: [0.35, 0.7, 0.35] 
-          }}
-          transition={{ 
-            duration: 2, 
-            repeat: Infinity, 
-            ease: 'easeInOut' 
-          }}
-          className="absolute -inset-4 sm:-inset-6 rounded-[36px] bg-gradient-to-tr from-emerald-500/30 to-lime-400/30 blur-2xl -z-10"
-        />
-
-        {/* Centered Logo Card with spring pop */}
-        <motion.div
-          initial={{ scale: 0.7, opacity: 0, y: 15 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          transition={{ 
-            type: 'spring', 
-            stiffness: 260, 
-            damping: 20,
-            duration: 0.6 
-          }}
-          className="relative w-full flex flex-col items-center justify-center"
+          initial={{ scale: 0.92, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="flex flex-col items-center"
         >
-          {/* Main App Icon (Instagram/YouTube style launch) */}
-          <div className="relative">
-            <div className="absolute -inset-3 bg-emerald-500/25 rounded-3xl blur-xl animate-pulse" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src="/logo.png" 
-              alt="KiKKO" 
-              className="relative w-24 h-24 sm:w-32 sm:h-32 object-contain drop-shadow-2xl rounded-2xl"
-            />
-          </div>
+          {/* Official KiKKO App Icon */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src="/logo.png" 
+            alt="KiKKO" 
+            className="w-24 h-24 sm:w-28 sm:h-28 object-contain drop-shadow-xl rounded-3xl"
+          />
 
           {/* Wordmark */}
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white mt-4 font-sans leading-none">
-            Ki<span className="text-emerald-400">KKO</span>
+            Ki<span className="text-emerald-500">KKO</span>
           </h1>
-        </motion.div>
 
-        {/* Brand Tagline */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.4 }}
-          className="mt-2.5 flex flex-col items-center"
-        >
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-0.5 bg-emerald-400 rounded-full" />
-            <p className="text-xs sm:text-sm font-extrabold tracking-[0.25em] text-emerald-300 uppercase">
-              FIND. BOOK. PLAY.
-            </p>
-            <span className="w-2.5 h-0.5 bg-emerald-400 rounded-full" />
-          </div>
+          {/* Tagline */}
+          <p className="text-[11px] sm:text-xs font-bold tracking-[0.25em] text-emerald-400 uppercase mt-2">
+            FIND. BOOK. PLAY.
+          </p>
         </motion.div>
       </div>
 
-      {/* Bottom Section: Sports SVG icons & sleek loading indicator (NO keyboard emojis) */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35, duration: 0.4 }}
-        className="pb-10 sm:pb-14 flex flex-col items-center gap-3 z-10 w-full"
-      >
-        {/* Clean SVG sports indicator row */}
-        <div className="flex items-center gap-4 text-emerald-300/80">
-          <div className="flex items-center gap-1.5 text-xs font-semibold">
-            <Activity className="w-4 h-4 text-emerald-400" />
-            <span className="hidden sm:inline text-[11px] text-emerald-200">Football</span>
-          </div>
-          <span className="text-emerald-600/50 text-xs">&bull;</span>
-          <div className="flex items-center gap-1.5 text-xs font-semibold">
-            <Zap className="w-4 h-4 text-emerald-400" />
-            <span className="hidden sm:inline text-[11px] text-emerald-200">Cricket</span>
-          </div>
-          <span className="text-emerald-600/50 text-xs">&bull;</span>
-          <div className="flex items-center gap-1.5 text-xs font-semibold">
-            <Wind className="w-4 h-4 text-emerald-400" />
-            <span className="hidden sm:inline text-[11px] text-emerald-200">Badminton</span>
-          </div>
-        </div>
-
-        {/* Sleek Instagram/YouTube-like minimal loading line */}
-        <div className="w-32 sm:w-40 h-1 bg-emerald-950/80 rounded-full overflow-hidden border border-emerald-800/40 relative">
+      {/* Bottom: Minimalist Native Loading Indicator */}
+      <div className="flex flex-col items-center gap-4 w-full max-w-[200px]">
+        {/* Clean, subtle progress track */}
+        <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden relative">
           <motion.div
             initial={{ x: '-100%' }}
             animate={{ x: '100%' }}
             transition={{ 
-              duration: 1.1, 
+              duration: 1.0, 
               repeat: Infinity, 
               ease: 'easeInOut' 
             }}
-            className="w-1/2 h-full bg-gradient-to-r from-transparent via-emerald-400 to-transparent rounded-full"
+            className="w-1/2 h-full bg-emerald-500 rounded-full"
           />
         </div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }

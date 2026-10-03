@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   const timestamp = Math.round(Date.now() / 1000);
   const paramsToSign: Record<string, string | number> = {
     timestamp,
-    folder: folder || 'playfield/turfs',
+    folder: folder || 'kikko/turfs',
   };
 
   // Generate signature: sort params alphabetically, join with &, append api_secret

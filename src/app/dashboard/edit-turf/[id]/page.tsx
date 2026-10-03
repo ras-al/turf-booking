@@ -14,7 +14,7 @@ async function uploadToCloudinary(file: File): Promise<string> {
   const signRes = await fetch('/api/cloudinary-sign', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ folder: 'playfield/turfs' }),
+    body: JSON.stringify({ folder: 'kikko/turfs' }),
   });
 
   if (!signRes.ok) throw new Error('Failed to get upload signature');

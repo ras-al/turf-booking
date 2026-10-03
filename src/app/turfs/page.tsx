@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
 import { fetchTurfs } from '@/lib/supabase/queries';
-import { formatCurrency, SPORT_ICONS, ALL_SPORTS, getRoadDistance, formatDistance } from '@/lib/utils';
+import { formatCurrency, SPORT_ICONS, ALL_SPORTS, formatDistance } from '@/lib/utils';
+import { calculateHaversineDistance } from '@/lib/location';
 import { useFilterStore } from '@/stores/filter-store';
 import type { Turf } from '@/types';
 import { MapPin, Star, Search, SlidersHorizontal, X } from 'lucide-react';
@@ -105,16 +106,14 @@ export default function TurfsPage() {
 
 function TurfsContent() {
   const searchParams = useSearchParams();
-  const { filters, setFilter, resetFilters } = useFilterStore();
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const { filters, setFilter, resetFilters, userCoords } = useFilterStore();
   const [allTurfs, setAllTurfs] = useState<Turf[]>([]);
-  const [turfsWithDistance, setTurfsWithDistance] = useState<Turf[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchTurfs().then((data) => { setAllTurfs(data); setTurfsWithDistance(data); setLoading(false); }).catch(() => setLoading(false));
+    fetchTurfs().then((data) => { setAllTurfs(data); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -124,29 +123,19 @@ function TurfsContent() {
     if (search) setFilter('search', search);
   }, [searchParams, setFilter]);
 
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
-        () => { /* Location denied */ }
-      );
+  const turfsWithDistance = useMemo(() => {
+    if (!allTurfs.length) return [];
+    if (userCoords) {
+      return allTurfs.map((turf) => {
+        if (turf.latitude && turf.longitude) {
+          const dist = calculateHaversineDistance(userCoords, [turf.latitude, turf.longitude]);
+          return { ...turf, distance: dist };
+        }
+        return turf;
+      });
     }
-  }, []);
-
-  useEffect(() => {
-    if (!userLocation) { setTurfsWithDistance(allTurfs); return; }
-    async function calcDistances() {
-      const results = await Promise.all(
-        allTurfs.map(async (turf) => {
-          if (!turf.latitude || !turf.longitude) return turf;
-          const dist = await getRoadDistance(userLocation!, [turf.latitude, turf.longitude]);
-          return { ...turf, distance: dist?.distance || undefined };
-        })
-      );
-      setTurfsWithDistance(results);
-    }
-    calcDistances();
-  }, [userLocation, allTurfs]);
+    return allTurfs;
+  }, [allTurfs, userCoords]);
 
   const filteredTurfs = useMemo(() => {
     let result = [...turfsWithDistance];
@@ -163,11 +152,15 @@ function TurfsContent() {
       case 'price_asc': result.sort((a, b) => a.price_per_hour - b.price_per_hour); break;
       case 'price_desc': result.sort((a, b) => b.price_per_hour - a.price_per_hour); break;
       case 'rating': result.sort((a, b) => b.avg_rating - a.avg_rating); break;
-      case 'distance': result.sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999)); break;
-      default: break;
+      case 'distance': result.sort((a, b) => (a.distance ?? 9999) - (b.distance ?? 9999)); break;
+      default:
+        if (userCoords) {
+          result.sort((a, b) => (a.distance ?? 9999) - (b.distance ?? 9999));
+        }
+        break;
     }
     return result;
-  }, [turfsWithDistance, filters]);
+  }, [turfsWithDistance, filters, userCoords]);
 
   const activeFilterCount = [filters.sport, filters.minPrice, filters.maxPrice, filters.size, filters.minRating].filter(Boolean).length;
 
@@ -217,7 +210,7 @@ function TurfsContent() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-extrabold text-gray-900">Find Your Turf</h1>
-                <p className="text-sm text-gray-500 mt-1">{loading ? 'Loading...' : `${filteredTurfs.length} turf${filteredTurfs.length !== 1 ? 's' : ''} available`}{userLocation && ' · Distance from your location'}</p>
+                <p className="text-sm text-gray-500 mt-1">{loading ? 'Loading...' : `${filteredTurfs.length} turf${filteredTurfs.length !== 1 ? 's' : ''} available`}{userCoords && ' · Sorted by distance from your location'}</p>
               </div>
               <button onClick={() => setIsFilterOpen(!isFilterOpen)} className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all flex items-center gap-1.5 ${isFilterOpen ? 'bg-green-50 border-green-300 text-green-600' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
                 <SlidersHorizontal className="w-4 h-4" /> Filters

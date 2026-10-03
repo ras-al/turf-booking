@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const actionLink = data?.properties?.action_link;
 
     console.log('\n╔══════════════════════════════════════════════════════════╗');
-    console.log(`║ [PLAYFIELD AUTH] User: ${cleanEmail}`);
+    console.log(`║ [KiKKO AUTH] User: ${cleanEmail}`);
     console.log(`║ OTP Code: ${otp}`);
     console.log(`║ Link: ${actionLink}`);
     console.log('╚══════════════════════════════════════════════════════════╝\n');

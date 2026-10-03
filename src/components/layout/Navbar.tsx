@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
 import { useFilterStore } from '@/stores/filter-store';
+import { requestCoordinates, reverseGeocode } from '@/lib/location';
 import { Home, Search, Calendar, User, LogIn, LogOut, LayoutDashboard, Shield, Heart, Bell, MapPin, X, Crosshair, Loader2, Trophy } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,7 +13,7 @@ import type { Notification } from '@/types';
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
-  const { filters, setFilter } = useFilterStore();
+  const { filters, setFilter, userCoords, userCity, setUserLocation, setLocationStatus } = useFilterStore();
   const pathname = usePathname();
   const router = useRouter();
   
@@ -27,7 +28,7 @@ export default function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  const currentCity = filters.city || 'Mumbai, India';
+  const displayCity = userCity || filters.city || 'Detect Location';
 
   // Load cities for dropdown
   useEffect(() => {
@@ -69,39 +70,28 @@ export default function Navbar() {
 
   // Auto-detect location on first visit
   useEffect(() => {
-    if (typeof window !== 'undefined' && !filters.city && !sessionStorage.getItem('pf_location_checked')) {
-      sessionStorage.setItem('pf_location_checked', 'true');
+    if (typeof window !== 'undefined' && !userCoords && !sessionStorage.getItem('kikko_location_prompted')) {
+      sessionStorage.setItem('kikko_location_prompted', 'true');
       handleGetLocation();
     }
-  }, [filters.city]);
+  }, [userCoords]);
 
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      return;
-    }
+  const handleGetLocation = async () => {
     setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-          const data = await res.json();
-          // Extract city or town
-          const city = data.address.city || data.address.town || data.address.state_district || data.address.state || 'Unknown Location';
-          setFilter('city', city);
-          setTempCity(city);
-          setShowLocationModal(false);
-        } catch (error) {
-          console.warn("Error fetching location details", error);
-        } finally {
-          setIsLocating(false);
-        }
-      },
-      (error) => {
-        console.warn("Geolocation skipped or failed (HTTPS required)", error.message);
-        setIsLocating(false);
-      }
-    );
+    setLocationStatus('requesting');
+    try {
+      const coords = await requestCoordinates();
+      const detectedCity = await reverseGeocode(coords.latitude, coords.longitude);
+      setUserLocation([coords.latitude, coords.longitude], detectedCity);
+      setFilter('city', detectedCity);
+      setTempCity(detectedCity);
+      setShowLocationModal(false);
+    } catch (error) {
+      console.warn("Geolocation skipped or failed", error);
+      setLocationStatus('denied');
+    } finally {
+      setIsLocating(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -225,6 +215,19 @@ export default function Navbar() {
               })}
             </div>
 
+            {/* Desktop Location Selector */}
+            <button 
+              onClick={() => { setTempCity(displayCity !== 'Detect Location' ? displayCity : ''); setShowLocationModal(true); }}
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-50 hover:bg-emerald-50/60 border border-gray-200 hover:border-emerald-300 text-gray-700 hover:text-emerald-700 text-xs font-semibold transition-all cursor-pointer shadow-2xs"
+              title="Change or detect location"
+            >
+              <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="max-w-[120px] truncate">{displayCity.split(',')[0]}</span>
+              <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
             {/* Auth Section */}
             <div className="flex items-center gap-3">
               {user ? (
@@ -324,10 +327,10 @@ export default function Navbar() {
         {/* Location selector */}
         <div 
           className="flex items-center gap-1 cursor-pointer bg-gray-50 hover:bg-gray-100 px-2 py-1.5 rounded-full border border-gray-200 transition-colors max-w-[120px] xs:max-w-[140px]" 
-          onClick={() => { setTempCity(filters.city || ''); setShowLocationModal(true); }}
+          onClick={() => { setTempCity(displayCity !== 'Detect Location' ? displayCity : ''); setShowLocationModal(true); }}
         >
           <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-          <span className="text-xs font-bold text-gray-800 truncate">{currentCity.split(',')[0]}</span>
+          <span className="text-xs font-bold text-gray-800 truncate">{displayCity.split(',')[0]}</span>
           <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
           </svg>
@@ -470,12 +473,13 @@ export default function Navbar() {
                           key={city}
                           onClick={() => {
                             setFilter('city', city);
+                            setUserLocation(null, city);
                             setTempCity(city);
                             setShowLocationModal(false);
                           }}
                           className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors ${
                             tempCity === city
-                              ? 'bg-green-50 border-green-300 text-green-700'
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
                               : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300'
                           }`}
                         >
@@ -489,19 +493,21 @@ export default function Navbar() {
                 <button 
                   onClick={handleGetLocation}
                   disabled={isLocating}
-                  className="mt-3 flex items-center gap-2 text-sm font-semibold text-green-600 hover:text-green-700 disabled:opacity-50"
+                  className="mt-3 flex items-center gap-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700 disabled:opacity-50 cursor-pointer"
                 >
                   {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crosshair className="w-4 h-4" />}
-                  {isLocating ? 'Detecting...' : 'Use Current Location'}
+                  {isLocating ? 'Detecting current coordinates...' : 'Use Current Location'}
                 </button>
               </div>
               <div className="px-5 pb-5">
                 <button 
                   onClick={() => { 
-                    setFilter('city', tempCity.trim() || undefined); 
+                    const chosen = tempCity.trim();
+                    setFilter('city', chosen || undefined); 
+                    setUserLocation(userCoords, chosen || null);
                     setShowLocationModal(false); 
                   }} 
-                  className="w-full py-3.5 bg-green-600 text-white font-bold rounded-xl shadow-sm active:scale-[0.98] transition-transform"
+                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm active:scale-[0.98] transition-transform cursor-pointer"
                 >
                   Save Location
                 </button>
